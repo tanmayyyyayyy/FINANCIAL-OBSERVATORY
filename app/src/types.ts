@@ -8,6 +8,7 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   date: string;      // ISO date, e.g. "2026-08-12"
   createdAt: string; // ISO timestamp
+  type?: string;
 }
 
 export interface Budget {

@@ -15,27 +15,27 @@ import { useBudgets } from "../context/BudgetsContext";
 import { Navbar } from "../components/Navbar";
 import { QuickAddModal } from "../components/QuickAddModal";
 import { formatCurrency } from "../utils/formatters";
-import { computeFinancialSummary } from "../utils/analytics";
+import { calculateForecast, computeFinancialSummary } from "../utils/analytics";
 
 export function Prediction() {
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [scenarioDelta, setScenarioDelta] = useState<number>(0);
-
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets, 86735);
+    return computeFinancialSummary(transactions, budgets);
   }, [transactions, budgets]);
+  const forecast = useMemo(() => calculateForecast(transactions), [transactions]);
 
   const simulatedProjectedSpend = useMemo(() => {
-    const base = summary.projectedMonthEnd;
+    const base = forecast.projectedSpend;
     const factor = 1 + scenarioDelta / 100;
     return Math.round(base * factor);
-  }, [summary.projectedMonthEnd, scenarioDelta]);
+  }, [forecast.projectedSpend, scenarioDelta]);
 
   const simulatedSavings = useMemo(() => {
-    return Math.max(0, summary.monthlyIncome - simulatedProjectedSpend);
-  }, [summary.monthlyIncome, simulatedProjectedSpend]);
+    return Math.max(0, forecast.projectedSavings + forecast.projectedSpend - simulatedProjectedSpend);
+  }, [forecast.projectedSavings, forecast.projectedSpend, simulatedProjectedSpend]);
 
   const projectionCurve = useMemo(() => {
     const points = [];
@@ -144,14 +144,14 @@ export function Prediction() {
                 {formatCurrency(simulatedSavings)}
               </div>
               <div style={{ fontSize: "11px", color: "var(--accent-pos)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                {((simulatedSavings / summary.monthlyIncome) * 100).toFixed(1)}% savings efficiency
+                {(summary.monthlyIncome > 0 ? (simulatedSavings / summary.monthlyIncome) * 100 : 0).toFixed(1)}% savings efficiency
               </div>
             </div>
 
             <div>
               <div className="stat-label">ENVELOPE UTILIZATION</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
-                {((simulatedProjectedSpend / summary.totalBudget) * 100).toFixed(1)}%
+                {(summary.totalBudget > 0 ? (simulatedProjectedSpend / summary.totalBudget) * 100 : 0).toFixed(1)}%
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
                 Envelope Cap: {formatCurrency(summary.totalBudget)}
@@ -161,10 +161,10 @@ export function Prediction() {
             <div>
               <div className="stat-label">ACTUARIAL CONFIDENCE</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "var(--accent-pos)", marginTop: "6px", letterSpacing: "-0.03em" }}>
-                94.2%
+                {forecast.confidence.toUpperCase()}
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                Low variance index (0.14)
+                Based on recorded completed-month history
               </div>
             </div>
           </div>

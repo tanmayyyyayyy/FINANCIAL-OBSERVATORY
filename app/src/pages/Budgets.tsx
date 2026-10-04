@@ -15,7 +15,7 @@ export function Budgets() {
   const [newLimitValue, setNewLimitValue] = useState<string>("");
 
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets, 86735);
+    return computeFinancialSummary(transactions, budgets);
   }, [transactions, budgets]);
 
   function handleSaveLimit(category: string) {

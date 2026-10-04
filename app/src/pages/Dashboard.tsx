@@ -36,7 +36,7 @@ export function Dashboard() {
   }, []);
 
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets, 86735);
+    return computeFinancialSummary(transactions, budgets);
   }, [transactions, budgets]);
 
   const chartSeries = useMemo(() => {
@@ -135,7 +135,7 @@ export function Dashboard() {
             className="dashboard-main-grid animate-fade-in"
           >
             <SpendingChart data={chartSeries} />
-            <CategoryBreakdown categories={summary.categorySpends} />
+            <CategoryBreakdown categories={summary.categorySpends} monthlyIncome={summary.monthlyIncome} />
           </section>
 
           {/* Institutional Ledger Snippet & Forward Predictive Horizon */}

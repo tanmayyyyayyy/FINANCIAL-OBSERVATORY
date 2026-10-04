@@ -3,6 +3,7 @@ import type { CategorySpend } from "../utils/analytics";
 
 interface CategoryBreakdownProps {
   categories: CategorySpend[];
+  monthlyIncome: number;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -16,7 +17,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Other: "#94a3b8",
 };
 
-export function CategoryBreakdown({ categories }: CategoryBreakdownProps) {
+export function CategoryBreakdown({ categories, monthlyIncome }: CategoryBreakdownProps) {
   const topCategories = categories.slice(0, 5);
   const totalSpent = categories.reduce((acc, c) => acc + c.spent, 0);
 
@@ -188,7 +189,7 @@ export function CategoryBreakdown({ categories }: CategoryBreakdownProps) {
         }}
       >
         <span>DISCRETIONARY ALLOCATION</span>
-        <span>{((totalSpent / 86735) * 100).toFixed(1)}% OF INFLOW</span>
+        <span>{(monthlyIncome > 0 ? (totalSpent / monthlyIncome) * 100 : 0).toFixed(1)}% OF INFLOW</span>
       </div>
     </div>
   );
