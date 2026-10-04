@@ -1,9 +1,14 @@
 import { Link } from "react-router-dom";
-import { Compass, ArrowRight, Activity, Terminal, Zap, Lock, BarChart2 } from "lucide-react";
+import { ArrowRight, Activity, Terminal, Zap, Lock, BarChart2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { ObservatoryMark } from "../components/ObservatoryMark";
+import { UserAvatar } from "../components/UserAvatar";
 
 export function Landing() {
+  const { user, loading } = useAuth();
   return (
     <div className="page-wrapper" style={{ position: "relative", overflow: "hidden" }}>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       {/* Ambient atmospheric orbs */}
       <div
         className="hero-orb"
@@ -45,30 +50,32 @@ export function Landing() {
       {/* Top Floating Glass Navigation */}
       <header className="top-navbar-wrapper">
         <div className="top-navbar">
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div className="brand-icon-shield">
-              <Compass size={13} strokeWidth={2.3} />
-            </div>
-            <span style={{ fontSize: "13.5px", fontWeight: 600, letterSpacing: "-0.02em" }}>
+          <Link to={user ? "/dashboard" : "/"} className="landing-brand" aria-label="Financial Observatory home">
+            <span className="brand-icon-shield">
+              <ObservatoryMark size={21} />
+            </span>
+            <span className="landing-brand-name">
               Financial Observatory
             </span>
-            <span className="brand-badge">SYSTEM V2.1</span>
-          </div>
+          </Link>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Link to="/login" className="button button-ghost" style={{ fontSize: "12.5px" }}>
-              Sign In
-            </Link>
-            <Link to="/dashboard" className="button button-primary" style={{ fontSize: "12.5px" }}>
-              <span>Open Observatory</span>
-              <ArrowRight size={13} strokeWidth={2.4} />
-            </Link>
+            {!loading && (user ? <>
+              <UserAvatar user={user} />
+              <span className="landing-user-name">{user.displayName || user.email}</span>
+              <Link to="/dashboard" className="button button-primary" style={{ fontSize: "12.5px" }}>Go to Dashboard <ArrowRight size={13} /></Link>
+            </> : <>
+              <Link to="/login" className="button button-ghost" style={{ fontSize: "12.5px" }}>Sign In</Link>
+            <Link to="/signup" className="button button-primary" style={{ fontSize: "12.5px" }}><span>Create Account</span><ArrowRight size={13} strokeWidth={2.4} /></Link>
+            </>)}
           </div>
         </div>
       </header>
 
       {/* Hero Section — cinematic, editorial, generous */}
       <section
+        id="main-content"
+        tabIndex={-1}
         className="animate-slide-up"
         style={{
           maxWidth: "1100px",
@@ -82,7 +89,7 @@ export function Landing() {
       >
         <div className="eyebrow" style={{ marginBottom: "22px" }}>
           <span className="dot" />
-          <span>FINANCIAL OBSERVATORY / SPATIAL CAPITAL TELEMETRY</span>
+          <span>PERSONAL FINANCES, CLEARLY</span>
         </div>
 
         <h1
@@ -111,35 +118,38 @@ export function Landing() {
             marginBottom: "44px",
           }}
         >
-          An intentional financial instrument designed for continuous spatial awareness,
-          predictive burn telemetry, and quiet capital control.
+          Track money coming in and going out, see what you spend, and understand what you have left.
         </p>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link
-            to="/dashboard"
+          {!loading && <Link
+            to={user ? "/dashboard" : "/signup"}
             className="button button-primary"
             style={{ padding: "12px 30px", fontSize: "13.5px" }}
           >
-            <span>Open Observatory</span>
+            <span>{user ? "Go to Dashboard" : "Create Account"}</span>
             <ArrowRight size={14} strokeWidth={2.5} />
-          </Link>
+          </Link>}
 
-          <Link
-            to="/ledger"
+          {!loading && <Link
+            to={user ? "/ledger" : "/login"}
             className="button button-secondary"
             style={{ padding: "12px 24px", fontSize: "13.5px" }}
           >
-            <span>Explore Ledger</span>
-          </Link>
+            <span>{user ? "View Transactions" : "Sign In"}</span>
+          </Link>}
         </div>
 
         {/* Quiet telemetry pill */}
         <div
+          className="landing-feature-pill"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "18px",
+            gap: "10px 14px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            maxWidth: "100%",
             marginTop: "52px",
             padding: "9px 20px",
             borderRadius: "999px",
@@ -153,12 +163,12 @@ export function Landing() {
         >
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Activity size={11} color="var(--accent-pos)" />
-            <span>LOCAL RECONCILIATION</span>
+            <span>MONEY IN / MONEY OUT</span>
           </span>
           <span style={{ opacity: 0.3 }}>|</span>
-          <span>ZERO CLOUD LEAKAGE</span>
+          <span>PRIVATE ACCOUNT DATA</span>
           <span style={{ opacity: 0.3 }}>|</span>
-          <span>SUB-SECOND LATENCY</span>
+          <span>LIVE DATA SYNC</span>
         </div>
       </section>
 
@@ -173,6 +183,7 @@ export function Landing() {
         }}
       >
         <div
+          className="landing-preview-card"
           style={{
             position: "relative",
             background: "linear-gradient(180deg, rgba(14, 14, 16, 0.85) 0%, rgba(7, 7, 8, 0.98) 100%)",
@@ -232,21 +243,23 @@ export function Landing() {
                   letterSpacing: "0.09em",
                 }}
               >
-                STATION ID: 0x9F4 • CAPITAL VELOCITY OBSERVATORY
+                PERSONAL FINANCIAL DASHBOARD
               </span>
             </div>
 
             <div style={{ display: "flex", gap: "24px", fontFamily: "var(--font-mono)", fontSize: "11.5px" }}>
               <div>
-                <span style={{ color: "rgba(255, 255, 255, 0.35)" }}>NET BALANCE: </span>
-                <strong style={{ color: "#ffffff" }}>₹72,450</strong>
+                <span style={{ color: "rgba(255, 255, 255, 0.35)" }}>MONEY LEFT: </span>
+                <strong style={{ color: "#ffffff" }}>YOUR DATA</strong>
               </div>
               <div>
-                <span style={{ color: "rgba(255, 255, 255, 0.35)" }}>RUN-RATE: </span>
-                <strong style={{ color: "var(--accent-pos)" }}>NOMINAL</strong>
+                <span style={{ color: "rgba(255, 255, 255, 0.35)" }}>MONTH-END ESTIMATE: </span>
+                <strong style={{ color: "var(--accent-pos)" }}>PRIVATE</strong>
               </div>
             </div>
           </div>
+
+          <div className="landing-preview-disclaimer">ILLUSTRATIVE PREVIEW · SAMPLE VALUES</div>
 
           {/* SVG Financial Terrain Waveform */}
           <div
@@ -338,7 +351,7 @@ export function Landing() {
               }}
             >
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px", marginRight: "6px" }}>CYCLE BURN</span>
-              ₹14,285
+              DAILY ACTIVITY
             </div>
           </div>
 
@@ -354,10 +367,10 @@ export function Landing() {
             }}
           >
             {[
-              { label: "NET BALANCE", value: "₹72,450", sub: "+8.4% vs last cycle", subColor: "var(--accent-pos)" },
-              { label: "ENVELOPE UTILIZATION", value: "57.1%", sub: "₹14,285 of ₹25,000 cap", subColor: "rgba(255,255,255,0.4)" },
-              { label: "PROJECTED RUNWAY", value: "₹21,450", sub: "Confidence: High (94%)", subColor: "rgba(255,255,255,0.4)" },
-              { label: "SAVINGS VELOCITY", value: "32.4%", sub: "+4.2% acceleration", subColor: "var(--accent-pos)" },
+              { label: "PRIVATE RECONCILIATION", value: "YOUR DATA", sub: "Connected to your account", subColor: "rgba(255,255,255,0.4)" },
+              { label: "SPENDING PLAN", value: "YOUR BUDGETS", sub: "Organized by your categories", subColor: "rgba(255,255,255,0.4)" },
+              { label: "FORWARD HORIZON", value: "PERSONAL FORECAST", sub: "Calculated from your activity", subColor: "rgba(255,255,255,0.4)" },
+              { label: "CASH FLOW", value: "ACTUAL ACTIVITY", sub: "Based on recorded transactions", subColor: "rgba(255,255,255,0.4)" },
             ].map((item) => (
               <div key={item.label}>
                 <div className="stat-label">{item.label}</div>
@@ -382,13 +395,14 @@ export function Landing() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "56px" }}>
-          <div className="eyebrow">OBSERVATORY ARCHITECTURE</div>
+          <div className="eyebrow">MADE FOR EVERYDAY MONEY</div>
           <h2 style={{ fontSize: "clamp(1.6rem, 2.5vw, 2.1rem)", letterSpacing: "-0.03em" }}>
-            Engineered for disciplined<br />capital allocation.
+            A clearer picture of<br />your money.
           </h2>
         </div>
 
         <div
+          className="landing-feature-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
@@ -398,24 +412,24 @@ export function Landing() {
           {[
             {
               num: "01",
-              section: "INGESTION",
+              section: "RECORD",
               icon: <Zap size={16} />,
-              title: "Instant Multi-Rail Capture",
-              desc: "Log payments across UPI, credit cards, debit cards, and cash with sub-second keyboard entry. Zero friction, zero cloud latency.",
+              title: "Add money in or out",
+              desc: "Record income, purchases, and payments in a few simple steps.",
             },
             {
               num: "02",
-              section: "COGNITION",
+              section: "UNDERSTAND",
               icon: <BarChart2 size={16} />,
-              title: "Spatial Category Intelligence",
-              desc: "Observe proportional capital movements in real-time. Understand how micro-transactions aggregate into systemic monthly consumption.",
+              title: "See where it goes",
+              desc: "Review spending by category and compare it with your monthly budgets.",
             },
             {
               num: "03",
-              section: "PROJECTION",
+              section: "PLAN",
               icon: <Lock size={16} />,
-              title: "Predictive Burn Modeling",
-              desc: "Anticipate month-end balances using adaptive burn rate modeling before budgets breach. Objective mathematical forecasts.",
+              title: "Plan for the month",
+              desc: "Use your recorded activity to estimate spending by month-end.",
             },
           ].map((card) => (
             <div
@@ -489,19 +503,22 @@ export function Landing() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Compass size={12} />
+            <ObservatoryMark size={16} />
             <span>Financial Observatory</span>
             <span style={{ opacity: 0.4 }}>•</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.08em" }}>BUILD 2.1</span>
           </div>
 
-          <div style={{ display: "flex", gap: "20px", fontSize: "12px" }}>
-            <Link to="/dashboard" style={{ transition: "color 160ms ease" }} onMouseOver={(e) => (e.currentTarget.style.color = "#fff")} onMouseOut={(e) => (e.currentTarget.style.color = "")}>Dashboard</Link>
-            <Link to="/budgets" style={{ transition: "color 160ms ease" }} onMouseOver={(e) => (e.currentTarget.style.color = "#fff")} onMouseOut={(e) => (e.currentTarget.style.color = "")}>Budgets</Link>
-            <Link to="/ledger" style={{ transition: "color 160ms ease" }} onMouseOver={(e) => (e.currentTarget.style.color = "#fff")} onMouseOut={(e) => (e.currentTarget.style.color = "")}>Ledger</Link>
-            <Link to="/prediction" style={{ transition: "color 160ms ease" }} onMouseOver={(e) => (e.currentTarget.style.color = "#fff")} onMouseOut={(e) => (e.currentTarget.style.color = "")}>Predictions</Link>
-            <Link to="/settings" style={{ transition: "color 160ms ease" }} onMouseOver={(e) => (e.currentTarget.style.color = "#fff")} onMouseOut={(e) => (e.currentTarget.style.color = "")}>Settings</Link>
-          </div>
+          {!loading && <nav className="landing-footer-links" aria-label="Footer navigation">
+            {user ? <>
+              <Link className="landing-footer-link" to="/dashboard">Dashboard</Link>
+              <Link className="landing-footer-link" to="/budgets">Budgets</Link>
+              <Link className="landing-footer-link" to="/ledger">Transactions</Link>
+              <Link className="landing-footer-link" to="/settings">Settings</Link>
+            </> : <>
+              <Link className="landing-footer-link" to="/login">Sign In</Link>
+              <Link className="landing-footer-link" to="/signup">Create Account</Link>
+            </>}
+          </nav>}
         </div>
       </footer>
     </div>

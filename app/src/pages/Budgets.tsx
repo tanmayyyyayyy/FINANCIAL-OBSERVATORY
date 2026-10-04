@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { Plus, Edit2, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useBudgets } from "../context/BudgetsContext";
 import { useTransactions } from "../context/TransactionsContext";
-import { Navbar } from "../components/Navbar";
-import { QuickAddModal } from "../components/QuickAddModal";
 import { formatCurrency } from "../utils/formatters";
 import { computeFinancialSummary } from "../utils/analytics";
 
 export function Budgets() {
+  const { openQuickAdd } = useOutletContext<{ openQuickAdd: () => void }>();
   const { budgets, setBudgetLimit } = useBudgets();
   const { transactions } = useTransactions();
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newLimitValue, setNewLimitValue] = useState<string>("");
 
@@ -33,16 +32,14 @@ export function Budgets() {
       if (cs.limit > 0 && cs.spent > cs.limit) {
         list.push({
           type: "OVER BUDGET",
-          text: `${cs.category} spending has breached the configured threshold by ${formatCurrency(
+          text: `You are ${formatCurrency(
             cs.spent - cs.limit
-          )}.`,
+          )} over your ${cs.category} budget.`,
         });
       } else if (cs.limit > 0 && cs.percentage >= 80) {
         list.push({
           type: "ATTENTION",
-          text: `${cs.category} has utilized ${cs.percentage.toFixed(0)}% of allocation with ${formatCurrency(
-            cs.remaining
-          )} headroom.`,
+          text: `You have spent ${cs.percentage.toFixed(0)}% of your ${cs.category} budget, with ${formatCurrency(cs.remaining)} left.`,
         });
       }
     });
@@ -50,7 +47,7 @@ export function Budgets() {
     if (list.length === 0) {
       list.push({
         type: "ON TRACK",
-        text: "All monitored spending tracks are operating within safe envelope limits.",
+        text: "All of your category budgets are within their limits.",
       });
     }
 
@@ -59,9 +56,8 @@ export function Budgets() {
 
   return (
     <div className="page-wrapper">
-      <Navbar onOpenQuickAdd={() => setIsQuickAddOpen(true)} />
 
-      <main className="content-wrapper">
+      <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
@@ -78,13 +74,13 @@ export function Budgets() {
             <div>
               <div className="eyebrow">
                 <span className="dot" />
-                <span>ALLOCATION TELEMETRY • CONTROL INSTRUMENTS</span>
+                <span>YOUR MONTHLY BUDGETS</span>
               </div>
               <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
-                Budget Control.
+                Budget Progress.
               </h1>
               <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.48)" }}>
-                Calibrate thresholds and maintain disciplined guardrails on category consumption.
+                Set a monthly limit for each category and see how much you have left to spend.
               </p>
             </div>
 
@@ -92,7 +88,7 @@ export function Budgets() {
               <button
                 type="button"
                 className="button button-primary"
-                onClick={() => setIsQuickAddOpen(true)}
+                onClick={openQuickAdd}
               >
                 <Plus size={13} strokeWidth={2.5} />
                 <span>Log Movement</span>
@@ -118,17 +114,17 @@ export function Budgets() {
               }}
             >
               <div>
-                <div className="stat-label">TOTAL MONTHLY ENVELOPE</div>
+                <div className="stat-label">TOTAL MONTHLY BUDGET</div>
                 <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                   {formatCurrency(summary.totalBudget)}
                 </div>
                 <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.36)", marginTop: "3px", fontFamily: "var(--font-mono)" }}>
-                  Cumulative allocation cap
+                  Combined monthly limits
                 </div>
               </div>
 
               <div>
-                <div className="stat-label">CONSUMED CAPITAL</div>
+                <div className="stat-label">MONEY SPENT</div>
                 <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                   {formatCurrency(summary.totalSpent)}
                 </div>
@@ -140,12 +136,12 @@ export function Budgets() {
                     fontFamily: "var(--font-mono)",
                   }}
                 >
-                  {summary.budgetUtilization.toFixed(1)}% of ceiling utilized
+                  {summary.budgetUtilization.toFixed(1)}% of your total budget
                 </div>
               </div>
 
               <div>
-                <div className="stat-label">REMAINING HEADROOM</div>
+                <div className="stat-label">LEFT TO SPEND</div>
                 <div
                   style={{
                     fontSize: "28px",
@@ -158,7 +154,7 @@ export function Budgets() {
                   {formatCurrency(Math.max(0, summary.totalBudget - summary.totalSpent))}
                 </div>
                 <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.36)", marginTop: "3px", fontFamily: "var(--font-mono)" }}>
-                  Available before breach
+                  Available this month
                 </div>
               </div>
             </div>
@@ -191,8 +187,8 @@ export function Budgets() {
               }}
             >
               <div>
-                <div className="eyebrow">INSTRUMENT CHASSIS</div>
-                <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>Category Instruments</h2>
+                <div className="eyebrow">YOUR CATEGORIES</div>
+                <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>Budget limits</h2>
               </div>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "rgba(255, 255, 255, 0.35)" }}>
                 {budgets.length} MONITORED TRACKS
@@ -200,6 +196,7 @@ export function Budgets() {
             </div>
 
             <div
+              className="budget-instruments-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
@@ -298,8 +295,8 @@ export function Budgets() {
           >
             <div className="card-header" style={{ marginBottom: "16px" }}>
               <div>
-                <div className="eyebrow">TELEMETRY DIAGNOSTICS</div>
-                <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>Instrument Status</h2>
+                <div className="eyebrow">BUDGET CHECK</div>
+                <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>How you’re doing</h2>
               </div>
             </div>
 
@@ -363,10 +360,6 @@ export function Budgets() {
         </div>
       </main>
 
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-      />
     </div>
   );
 }

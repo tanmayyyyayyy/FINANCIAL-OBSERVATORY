@@ -53,7 +53,13 @@ export interface DaySpendPoint {
   dayLabel: string;
   amount: number;
   cumulative: number;
-  projectedRunRate: number;
+}
+
+export interface PeriodComparison {
+  incomeChange: number | null;
+  spendingChange: number | null;
+  balanceChange: number | null;
+  savingsRateChange: number | null;
 }
 
 export interface FinancialSummary {
@@ -82,8 +88,12 @@ function validTransactions(transactions: Transaction[]): Transaction[] {
   );
 }
 
-function isIncome(transaction: Transaction): boolean {
-  return transaction.type?.toLowerCase() === "income";
+export function isIncomeTransaction(transaction: Transaction): boolean {
+  return transaction.type === "income";
+}
+
+export function isExpenseTransaction(transaction: Transaction): boolean {
+  return transaction.type === undefined || transaction.type === "expense";
 }
 
 function currentMonthKey(now = new Date()): string {
@@ -92,8 +102,8 @@ function currentMonthKey(now = new Date()): string {
 
 export function calculateFinancialSummary(transactions: Transaction[]): FinancialSummaryResult {
   const valid = validTransactions(transactions);
-  const income = valid.filter(isIncome).reduce((sum, transaction) => sum + transaction.amount, 0);
-  const spending = valid.filter((transaction) => !isIncome(transaction))
+  const income = valid.filter(isIncomeTransaction).reduce((sum, transaction) => sum + transaction.amount, 0);
+  const spending = valid.filter((transaction) => isExpenseTransaction(transaction))
     .reduce((sum, transaction) => sum + transaction.amount, 0);
   const savings = income - spending;
   return {
@@ -115,14 +125,14 @@ export function calculateForecast(transactions: Transaction[], now = new Date())
   const thisMonthKey = currentMonthKey(now);
   const currentExpenses = valid.filter((transaction) => {
     const date = parsedDate(transaction.date)!;
-    return !isIncome(transaction) && `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` === thisMonthKey;
+    return isExpenseTransaction(transaction) && `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` === thisMonthKey;
   });
   const currentSpend = currentExpenses.reduce((sum, transaction) => sum + transaction.amount, 0);
   const currentRunRate = (currentSpend / elapsedDays) * monthDays;
 
   const completedMonths = new Map<string, number>();
   for (const transaction of valid) {
-    if (isIncome(transaction)) continue;
+    if (isIncomeTransaction(transaction)) continue;
     const date = parsedDate(transaction.date)!;
     const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
     if (key !== thisMonthKey) completedMonths.set(key, (completedMonths.get(key) ?? 0) + transaction.amount);
@@ -134,7 +144,7 @@ export function calculateForecast(transactions: Transaction[], now = new Date())
   const projectedSpend = historicAverage === null ? currentRunRate : (historicAverage + currentRunRate) / 2;
   const currentIncome = valid.filter((transaction) => {
     const date = parsedDate(transaction.date)!;
-    return isIncome(transaction) && `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` === thisMonthKey;
+    return isIncomeTransaction(transaction) && `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` === thisMonthKey;
   }).reduce((sum, transaction) => sum + transaction.amount, 0);
   const projectedIncome = currentIncome > 0 ? currentIncome : calculateFinancialSummary(valid).income;
 
@@ -158,8 +168,8 @@ export function calculateMonthlySummary(
     const date = parsedDate(transaction.date)!;
     return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === monthNumber;
   });
-  const income = inMonth.filter(isIncome).reduce((sum, transaction) => sum + transaction.amount, 0);
-  const expenses = inMonth.filter((transaction) => !isIncome(transaction));
+  const income = inMonth.filter(isIncomeTransaction).reduce((sum, transaction) => sum + transaction.amount, 0);
+  const expenses = inMonth.filter((transaction) => isExpenseTransaction(transaction));
   const totalExpenses = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
   const categoryTotals = new Map<string, number>();
   for (const transaction of expenses) {
@@ -186,6 +196,37 @@ export function calculateMonthlySummary(
   return { totalIncome: income, totalExpenses, savings: income - totalExpenses, topCategories, budgetPerformance };
 }
 
+export function calculatePeriodComparison(transactions: Transaction[], now = new Date()): PeriodComparison {
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth();
+  const day = now.getUTCDate();
+  const previousMonthDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
+  const previousYear = previousMonthDate.getUTCFullYear();
+  const previousMonth = previousMonthDate.getUTCMonth();
+  const previousMonthDays = new Date(Date.UTC(previousYear, previousMonth + 1, 0)).getUTCDate();
+  const periodDays = Math.min(day, previousMonthDays);
+  const valid = validTransactions(transactions);
+  const periodSummary = (year: number, month: number, days: number) => {
+    const period = valid.filter((transaction) => {
+      const date = parsedDate(transaction.date)!;
+      return date.getUTCFullYear() === year && date.getUTCMonth() === month && date.getUTCDate() <= days;
+    });
+    const income = period.filter(isIncomeTransaction).reduce((sum, tx) => sum + tx.amount, 0);
+    const spending = period.filter((tx) => isExpenseTransaction(tx)).reduce((sum, tx) => sum + tx.amount, 0);
+    return { income, spending, balance: income - spending, savingsRate: income > 0 ? ((income - spending) / income) * 100 : 0, count: period.length };
+  };
+  const current = periodSummary(currentYear, currentMonth, day);
+  const previous = periodSummary(previousYear, previousMonth, periodDays);
+  if (!previous.count) return { incomeChange: null, spendingChange: null, balanceChange: null, savingsRateChange: null };
+  const percentChange = (currentValue: number, previousValue: number) => previousValue === 0 ? null : ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+  return {
+    incomeChange: percentChange(current.income, previous.income),
+    spendingChange: percentChange(current.spending, previous.spending),
+    balanceChange: percentChange(current.balance, previous.balance),
+    savingsRateChange: previous.income > 0 ? current.savingsRate - previous.savingsRate : null,
+  };
+}
+
 export function computeFinancialSummary(transactions: Transaction[], budgets: Budget[]): FinancialSummary {
   const monthly = calculateMonthlySummary(transactions, budgets);
   const forecast = calculateForecast(transactions);
@@ -197,7 +238,7 @@ export function computeFinancialSummary(transactions: Transaction[], budgets: Bu
     percentage: item.percentageUsed,
     remaining: Math.max(0, item.remaining),
     isOver: item.spent > item.budget,
-    transactionCount: transactions.filter((transaction) => !isIncome(transaction) &&
+    transactionCount: transactions.filter((transaction) => isExpenseTransaction(transaction) &&
       transaction.category.trim().toLowerCase() === item.category.trim().toLowerCase() &&
       parsedDate(transaction.date)?.toISOString().slice(0, 7) === currentMonthKey(),
     ).length,
@@ -211,7 +252,7 @@ export function computeFinancialSummary(transactions: Transaction[], budgets: Bu
       percentage: 100,
       remaining: 0,
       isOver: true,
-      transactionCount: transactions.filter((transaction) => !isIncome(transaction) &&
+      transactionCount: transactions.filter((transaction) => isExpenseTransaction(transaction) &&
         transaction.category.trim().toLowerCase() === item.category.trim().toLowerCase() &&
         parsedDate(transaction.date)?.toISOString().slice(0, 7) === currentMonthKey(),
       ).length,
@@ -243,7 +284,7 @@ export function computeDailySpendingSeries(transactions: Transaction[], daysCoun
     date.setDate(now.getDate() - i);
     const dateString = date.toISOString().slice(0, 10);
     const dayTransactions = transactions.filter((transaction) =>
-      !isIncome(transaction) && transaction.date === dateString,
+      isExpenseTransaction(transaction) && transaction.date === dateString,
     );
     const amount = dayTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
     cumulative += amount;
@@ -252,7 +293,6 @@ export function computeDailySpendingSeries(transactions: Transaction[], daysCoun
       dayLabel: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       amount,
       cumulative,
-      projectedRunRate: Math.round((22000 / 30) * (daysCount - i)),
     });
   }
   return points;

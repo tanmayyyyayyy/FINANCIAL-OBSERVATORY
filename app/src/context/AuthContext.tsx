@@ -24,6 +24,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName?: string) => Promise<void>
   signOut: () => Promise<void>
+  updateDisplayName: (name: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [, setProfileRevision] = useState(0)
 
   useEffect(() => {
     if (!auth) {
@@ -80,15 +82,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email.trim(),
         password,
       )
-      if (displayName?.trim()) {
-        try {
-          await updateProfile(credential.user, { displayName: displayName.trim() })
-        } catch {
-          setError('Account created, but the profile name could not be saved.')
-        }
-      }
+      const normalizedName = displayName?.trim().replace(/\s+/g, ' ')
+      if (!normalizedName) throw new Error('Enter your name to create your account.')
+      await updateProfile(credential.user, { displayName: normalizedName })
+      setProfileRevision((revision) => revision + 1)
     } catch (cause) {
       setError(firebaseErrorMessage(cause, 'Unable to create the account. Please try again.'))
+      throw cause
+    }
+  }
+
+  async function updateDisplayName(name: string) {
+    const normalizedName = name.trim().replace(/\s+/g, ' ')
+    if (!normalizedName) throw new Error('Name cannot be empty.')
+    const currentUser = requireAuth().currentUser
+    if (!currentUser) throw new Error('Sign in again to update your profile.')
+    setError(null)
+    try {
+      await updateProfile(currentUser, { displayName: normalizedName })
+      setProfileRevision((revision) => revision + 1)
+    } catch (cause) {
+      setError(firebaseErrorMessage(cause, 'Unable to update your profile name.'))
       throw cause
     }
   }
@@ -105,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, clearError: () => setError(null), signIn, signUp, signOut }}
+      value={{ user, loading, error, clearError: () => setError(null), signIn, signUp, signOut, updateDisplayName }}
     >
       {children}
     </AuthContext.Provider>

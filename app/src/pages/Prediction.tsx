@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -12,16 +12,26 @@ import {
 import { TrendingUp, Sliders, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
-import { Navbar } from "../components/Navbar";
-import { QuickAddModal } from "../components/QuickAddModal";
 import { formatCurrency } from "../utils/formatters";
 import { calculateForecast, computeFinancialSummary } from "../utils/analytics";
 
 export function Prediction() {
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [scenarioDelta, setScenarioDelta] = useState<number>(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const chartHasAnimated = useRef(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(media.matches);
+    media.addEventListener("change", updatePreference);
+    return () => media.removeEventListener("change", updatePreference);
+  }, []);
+
+  useEffect(() => { chartHasAnimated.current = true; }, []);
   const summary = useMemo(() => {
     return computeFinancialSummary(transactions, budgets);
   }, [transactions, budgets]);
@@ -70,9 +80,8 @@ export function Prediction() {
 
   return (
     <div className="page-wrapper">
-      <Navbar onOpenQuickAdd={() => setIsQuickAddOpen(true)} />
 
-      <main className="content-wrapper">
+      <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
@@ -89,13 +98,13 @@ export function Prediction() {
             <div>
               <div className="eyebrow">
                 <span className="dot" />
-                <span>PREDICTIVE ENGINE • RUN-RATE MODELING</span>
+                <span>YOUR SPENDING OUTLOOK</span>
               </div>
               <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
-                Prediction Engine.
+                Where You're Heading.
               </h1>
               <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.48)" }}>
-                Extrapolate end-of-cycle capital burn and model discretionary spending adjustments.
+                See your spending pace and explore how small changes could shape the month.
               </p>
             </div>
           </div>
@@ -113,7 +122,7 @@ export function Prediction() {
             }}
           >
             <div>
-              <div className="stat-label">PROJECTED MONTH-END OUTFLOW</div>
+              <div className="stat-label">ESTIMATED SPENDING</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {formatCurrency(simulatedProjectedSpend)}
               </div>
@@ -129,17 +138,17 @@ export function Prediction() {
                 }}
               >
                 {simulatedProjectedSpend > summary.totalBudget
-                  ? `Breaches envelope by ${formatCurrency(
+                  ? `Above budget by ${formatCurrency(
                       simulatedProjectedSpend - summary.totalBudget
                     )}`
-                  : `Within budget ceiling by ${formatCurrency(
+                  : `Under budget by ${formatCurrency(
                       summary.totalBudget - simulatedProjectedSpend
                     )}`}
               </div>
             </div>
 
             <div>
-              <div className="stat-label">PROJECTED CAPITAL RETAINED</div>
+              <div className="stat-label">ESTIMATED MONEY LEFT</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {formatCurrency(simulatedSavings)}
               </div>
@@ -149,7 +158,7 @@ export function Prediction() {
             </div>
 
             <div>
-              <div className="stat-label">ENVELOPE UTILIZATION</div>
+              <div className="stat-label">AVERAGE SPENT PER DAY</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {(summary.totalBudget > 0 ? (simulatedProjectedSpend / summary.totalBudget) * 100 : 0).toFixed(1)}%
               </div>
@@ -159,7 +168,7 @@ export function Prediction() {
             </div>
 
             <div>
-              <div className="stat-label">ACTUARIAL CONFIDENCE</div>
+                <div className="stat-label">ESTIMATE CONFIDENCE</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "var(--accent-pos)", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {forecast.confidence.toUpperCase()}
               </div>
@@ -190,7 +199,7 @@ export function Prediction() {
               }}
             >
               <div>
-                <div className="eyebrow">CHRONOLOGICAL EXTRAPOLATION</div>
+                <div className="eyebrow">YOUR SPENDING PACE</div>
                 <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>
                   Burn Trajectory vs Budget Ceiling
                 </h2>
@@ -223,7 +232,7 @@ export function Prediction() {
                     fontSize={10.5}
                     fontFamily="var(--font-mono)"
                     tickLine={false}
-                    interval={4}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     stroke="rgba(255, 255, 255, 0.25)"
@@ -255,6 +264,7 @@ export function Prediction() {
                     strokeWidth={2.2}
                     dot={false}
                     name="Actual Reconciled"
+                    isAnimationActive={!prefersReducedMotion && !chartHasAnimated.current}
                   />
                   <Line
                     type="monotone"
@@ -264,6 +274,7 @@ export function Prediction() {
                     strokeDasharray="4 4"
                     dot={false}
                     name="Projected Trajectory"
+                    isAnimationActive={!prefersReducedMotion && !chartHasAnimated.current}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -290,7 +301,7 @@ export function Prediction() {
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Sliders size={13} color="rgba(255, 255, 255, 0.5)" />
                   <span style={{ fontSize: "13px", fontWeight: 500, color: "#ffffff" }}>
-                    Discretionary Spending Delta Simulation
+                    Adjust your spending estimate
                   </span>
                 </div>
                 <span
@@ -324,9 +335,9 @@ export function Prediction() {
                   fontFamily: "var(--font-mono)",
                 }}
               >
-                <span>-20% (AGGRESSIVE THRIFT)</span>
-                <span>0% (NOMINAL RUN-RATE)</span>
-                <span>+30% (ACCELERATED BURN)</span>
+                <span>−20% (SPEND LESS)</span>
+                <span>0% (NO CHANGE)</span>
+                <span>+30% (SPEND MORE)</span>
               </div>
             </div>
           </div>
@@ -338,6 +349,7 @@ export function Prediction() {
             </div>
 
             <div
+              className="prediction-insights-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
@@ -348,12 +360,13 @@ export function Prediction() {
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                   <TrendingUp size={15} color="var(--accent-pos)" />
                   <span style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff" }}>
-                    Run-Rate Stability
+                    Spending so far
                   </span>
                 </div>
                 <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.58)", lineHeight: 1.6 }}>
-                  Standard deviation across daily transactions is currently within 14% of historical 90-day mean.
-                  Spending velocity shows consistent discipline across weekday cycles.
+                  {summary.totalSpent > 0
+                    ? `You have spent an average of ${formatCurrency(summary.spendingVelocity)} per day this month.`
+                    : "Add an expense to see your average spending for the month."}
                 </p>
               </div>
 
@@ -361,12 +374,13 @@ export function Prediction() {
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                   <ShieldAlert size={15} color="var(--accent-warn)" />
                   <span style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff" }}>
-                    Category Concentration
+                    Top spending category
                   </span>
                 </div>
                 <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.58)", lineHeight: 1.6 }}>
-                  {summary.categorySpends[0]?.category || "Food & Dining"} accounts for the highest single
-                  allocation of discretionary capital. Monitoring this track offers the highest leverage for savings optimization.
+                  {summary.categorySpends[0]?.spent > 0
+                    ? `${summary.categorySpends[0].category} is your largest spending category this month.`
+                    : "Your category breakdown will appear after you record an expense."}
                 </p>
               </div>
 
@@ -374,12 +388,11 @@ export function Prediction() {
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                   <CheckCircle2 size={15} color="var(--accent-pos)" />
                   <span style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff" }}>
-                    Liquidity Horizon
+                    Estimated money left
                   </span>
                 </div>
                 <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.58)", lineHeight: 1.6 }}>
-                  At current outflow speed, net surplus retained at cycle closure will expand cumulative cash reserves by
-                  an estimated {formatCurrency(simulatedSavings)}.
+                  Based on your spending estimate, you may have {formatCurrency(simulatedSavings)} left at month-end.
                 </p>
               </div>
             </div>
@@ -387,10 +400,6 @@ export function Prediction() {
         </div>
       </main>
 
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-      />
     </div>
   );
 }

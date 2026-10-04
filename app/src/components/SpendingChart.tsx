@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -7,12 +7,15 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { formatCurrency } from "../utils/formatters";
 import type { DaySpendPoint } from "../utils/analytics";
+import { EmptyState } from "./EmptyState";
 
 interface SpendingChartProps {
   data: DaySpendPoint[];
+  onLogExpense?: () => void;
 }
 
 interface CustomTooltipProps {
@@ -74,8 +77,21 @@ function GlassTooltip({ active, payload, label }: CustomTooltipProps) {
   return null;
 }
 
-export function SpendingChart({ data }: SpendingChartProps) {
+export function SpendingChart({ data, onLogExpense }: SpendingChartProps) {
   const [activeRange, setActiveRange] = useState<"7D" | "14D" | "30D">("14D");
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(media.matches);
+    media.addEventListener("change", updatePreference);
+    return () => media.removeEventListener("change", updatePreference);
+  }, []);
+
+  useEffect(() => { hasAnimated.current = true; }, []);
 
   const filteredData =
     activeRange === "7D"
@@ -83,6 +99,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
       : activeRange === "14D"
       ? data.slice(-14)
       : data;
+  const hasSpend = filteredData.some((point) => point.amount > 0);
 
   return (
     <div
@@ -116,6 +133,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
 
         {/* Range Selector Pill */}
         <div
+          className="spending-range-selector"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -130,6 +148,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
             <button
               key={range}
               type="button"
+              aria-pressed={activeRange === range}
               onClick={() => setActiveRange(range)}
               style={{
                 padding: "3px 9px",
@@ -154,9 +173,10 @@ export function SpendingChart({ data }: SpendingChartProps) {
         </div>
       </div>
 
-      <div style={{ width: "100%", height: 300 }}>
+      {!hasSpend ? <EmptyState title="No spending in this range" description="Once you record money going out, your daily activity will appear here." actionText={onLogExpense ? "Add transaction" : undefined} onAction={onLogExpense} /> : <div className="spending-chart-area" style={{ width: "100%", height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
+            accessibilityLayer
             data={filteredData}
             margin={{ top: 8, right: 6, left: -22, bottom: 0 }}
           >
@@ -182,6 +202,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
               tickLine={false}
               axisLine={{ stroke: "rgba(255, 255, 255, 0.06)" }}
               dy={6}
+              interval="preserveStartEnd"
             />
 
             <YAxis
@@ -194,7 +215,8 @@ export function SpendingChart({ data }: SpendingChartProps) {
               dx={-4}
             />
 
-            <Tooltip content={<GlassTooltip />} />
+            <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,.28)", strokeDasharray: "3 4" }} />
+            <ReferenceLine y={0} stroke="rgba(255,255,255,.10)" />
 
             <Area
               type="monotone"
@@ -208,12 +230,12 @@ export function SpendingChart({ data }: SpendingChartProps) {
                 stroke: "#070708",
                 strokeWidth: 2,
               }}
-              isAnimationActive={true}
+              isAnimationActive={!prefersReducedMotion && !hasAnimated.current}
               animationDuration={600}
             />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
+      </div>}
 
       <div
         style={{
@@ -229,7 +251,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
           letterSpacing: "0.05em",
         }}
       >
-        <span>STATUS: ACTIVE RECONCILIATION</span>
+        <span>STATUS: {hasSpend ? "RECONCILED ACTIVITY" : "AWAITING ACTIVITY"}</span>
         <span>RESOLUTION: DAILY ACCRUAL</span>
       </div>
     </div>

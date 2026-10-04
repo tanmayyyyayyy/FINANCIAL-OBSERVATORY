@@ -1,18 +1,37 @@
-import { useState, useMemo } from "react";
-import { Search, Plus, Trash2, Filter } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useOutletContext } from "react-router-dom";
+import { Search, Plus, Trash2, Filter, Receipt } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
-import { Navbar } from "../components/Navbar";
-import { QuickAddModal } from "../components/QuickAddModal";
 import { EmptyState } from "../components/EmptyState";
+import { isIncomeTransaction } from "../utils/analytics";
 import { formatCurrency, formatDate } from "../utils/formatters";
+import { containDialogFocus } from "../utils/dialogFocus";
 
 export function Ledger() {
+  const { openQuickAdd } = useOutletContext<{ openQuickAdd: () => void }>();
   const { transactions, deleteTransaction } = useTransactions();
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedMethod, setSelectedMethod] = useState<string>("ALL");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest">("newest");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterSheetRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const restoreFocus = filterSheetRef.current ? containDialogFocus(filterSheetRef.current) : undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setFiltersOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+      restoreFocus?.();
+    };
+  }, [filtersOpen]);
 
   const categories = useMemo(() => {
     const set = new Set(transactions.map((t) => t.category));
@@ -54,9 +73,8 @@ export function Ledger() {
 
   return (
     <div className="page-wrapper">
-      <Navbar onOpenQuickAdd={() => setIsQuickAddOpen(true)} />
 
-      <main className="content-wrapper">
+      <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
@@ -73,13 +91,13 @@ export function Ledger() {
             <div>
               <div className="eyebrow">
                 <span className="dot" />
-                <span>AUDIT TRAIL • GENERAL LEDGER</span>
+                <span>YOUR TRANSACTIONS</span>
               </div>
               <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
-                Detailed Ledger.
+                Your Transactions.
               </h1>
               <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.52)" }}>
-                Granular reconciliation log of all capital movements, merchants, and settlement rails.
+                Search and review money coming in and going out.
               </p>
             </div>
 
@@ -87,16 +105,17 @@ export function Ledger() {
               <button
                 type="button"
                 className="button button-primary"
-                onClick={() => setIsQuickAddOpen(true)}
+                onClick={openQuickAdd}
               >
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Record Movement</span>
+                <span>Add transaction</span>
               </button>
             </div>
           </div>
 
           {/* Airy Quick Metrics Strip */}
           <div
+            className="ledger-toolbar"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -107,21 +126,21 @@ export function Ledger() {
             }}
           >
             <div>
-              <div className="stat-label">RECONCILED MOVEMENTS</div>
+              <div className="stat-label">TRANSACTIONS</div>
               <div style={{ fontSize: "24px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {stats.count} entries
               </div>
             </div>
 
             <div>
-              <div className="stat-label">AGGREGATE SUM</div>
+              <div className="stat-label">TOTAL IN RESULTS</div>
               <div style={{ fontSize: "24px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {formatCurrency(stats.total)}
               </div>
             </div>
 
             <div>
-              <div className="stat-label">AVERAGE TICKET SIZE</div>
+              <div className="stat-label">AVERAGE TRANSACTION</div>
               <div style={{ fontSize: "24px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {formatCurrency(stats.avg)}
               </div>
@@ -140,7 +159,7 @@ export function Ledger() {
             }}
           >
             {/* Search Input */}
-            <div style={{ position: "relative", minWidth: "260px", flex: 1 }}>
+            <div className="ledger-search-field" style={{ position: "relative", minWidth: "260px", flex: 1 }}>
               <Search
                 size={14}
                 style={{
@@ -167,7 +186,7 @@ export function Ledger() {
             </div>
 
             {/* Filter Selectors */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <div className="ledger-filters" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <Filter size={13} color="rgba(255, 255, 255, 0.4)" />
                 <select
@@ -207,6 +226,10 @@ export function Ledger() {
                 <option value="highest">Highest Amount</option>
               </select>
             </div>
+            <button type="button" className="button button-secondary ledger-filter-button" aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>
+              <Filter size={15} />
+              <span>Filters</span>
+            </button>
           </div>
 
           {/* Terminal Table Chassis */}
@@ -215,10 +238,11 @@ export function Ledger() {
               title="No Reconciled Movements Found"
               description="No transaction records match the specified filters or search query."
               actionText="Log New Movement"
-              onAction={() => setIsQuickAddOpen(true)}
+              onAction={openQuickAdd}
             />
           ) : (
-            <div className="ledger-table-container">
+            <>
+            <div className="ledger-table-container desktop-ledger-table">
               <table className="ledger-table">
                 <thead>
                   <tr>
@@ -246,8 +270,8 @@ export function Ledger() {
                         <span className="payment-method-tag">{tx.paymentMethod}</span>
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <span className="amount-debit">
-                          −{formatCurrency(tx.amount)}
+                        <span className={isIncomeTransaction(tx) ? "amount-credit" : "amount-debit"}>
+                          {isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}
                         </span>
                       </td>
                       <td style={{ textAlign: "right" }}>
@@ -270,14 +294,59 @@ export function Ledger() {
                 </tbody>
               </table>
             </div>
+            <div className="mobile-transaction-list">
+              {filteredTransactions.map((tx) => (
+                <article className="mobile-transaction-card" key={tx.id}>
+                  <span className="transaction-category-icon" aria-hidden="true"><Receipt size={17} /></span>
+                  <div className="mobile-transaction-copy">
+                    <strong>{tx.category}</strong>
+                    <span>{formatDate(tx.date)}{tx.description ? ` · ${tx.description}` : ""}</span>
+                  </div>
+                  <strong className={`mobile-transaction-amount ${isIncomeTransaction(tx) ? "amount-credit" : "amount-debit"}`}>{isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}</strong>
+                  <button
+                    type="button"
+                    className="button-icon mobile-transaction-delete"
+                    aria-label={`Delete ${tx.description || tx.category}`}
+                    onClick={() => {
+                      if (confirm("Delete this transaction entry from the ledger?")) deleteTransaction(tx.id);
+                    }}
+                  ><Trash2 size={15} /></button>
+                </article>
+              ))}
+            </div>
+            </>
           )}
         </div>
       </main>
 
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-      />
+      {filtersOpen && (
+        <div className="filter-sheet-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setFiltersOpen(false); }}>
+          <section ref={filterSheetRef} tabIndex={-1} className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title">
+            <div className="filter-sheet-heading">
+              <h2 id="filter-sheet-title">Filter transactions</h2>
+              <button type="button" className="button-icon" aria-label="Close filters" onClick={() => setFiltersOpen(false)}>×</button>
+            </div>
+            <label htmlFor="mobile-category-filter">Category</label>
+            <select id="mobile-category-filter" value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+              <option value="ALL">All Categories</option>
+              {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+            <label htmlFor="mobile-method-filter">Payment method</label>
+            <select id="mobile-method-filter" value={selectedMethod} onChange={(event) => setSelectedMethod(event.target.value)}>
+              <option value="ALL">All Methods</option>
+              {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
+            </select>
+            <label htmlFor="mobile-sort-filter">Sort by</label>
+            <select id="mobile-sort-filter" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as "newest" | "oldest" | "highest")}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest">Highest Amount</option>
+            </select>
+            <button type="button" className="button button-primary filter-sheet-done" onClick={() => setFiltersOpen(false)}>Show {filteredTransactions.length} transactions</button>
+          </section>
+        </div>
+      )}
+
     </div>
   );
 }

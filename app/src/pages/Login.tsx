@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Compass, ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { ObservatoryMark } from "../components/ObservatoryMark";
 import { useAuth } from "../context/AuthContext";
 import { firebaseErrorMessage } from "../firebase/errors";
 
@@ -83,7 +84,7 @@ export function Login() {
         {/* Brand mark */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
           <div className="brand-icon-shield">
-            <Compass size={13} strokeWidth={2.2} />
+            <ObservatoryMark size={21} />
           </div>
           <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.02em" }}>
             Financial Observatory
@@ -135,7 +136,7 @@ export function Login() {
               }}
             >
               <span>CYCLE START</span>
-              <span style={{ color: "var(--accent-pos)" }}>LIVE — NOMINAL</span>
+              <span style={{ color: "var(--accent-pos)" }}>SAMPLE PREVIEW</span>
             </div>
           </div>
 
@@ -144,11 +145,10 @@ export function Login() {
             <span>FINANCIAL OBSERVATORY</span>
           </div>
           <h2 style={{ fontSize: "1.6rem", marginBottom: "10px", lineHeight: 1.2 }}>
-            Your capital intelligence<br />command center.
+            Your money, all in<br />one place.
           </h2>
           <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>
-            Observe spending patterns, predict burn trajectories, and maintain
-            disciplined capital allocation — all in one precise instrument.
+            Track money in and out, review your spending, and see how you are doing against your budgets.
           </p>
 
           <div
@@ -214,7 +214,7 @@ export function Login() {
           </div>
           <h1 style={{ fontSize: "2.1rem", marginBottom: "8px" }}>Welcome back.</h1>
           <p style={{ fontSize: "13.5px", color: "rgba(255, 255, 255, 0.45)", marginBottom: "32px", lineHeight: 1.6 }}>
-            Enter your observer credentials to access your financial telemetry.
+            Sign in to see your transactions, budgets, and spending summary.
           </p>
 
           {error && (
@@ -243,12 +243,12 @@ export function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="intel@domain.com"
+                placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="login-password">PASSPHRASE</label>
+              <label htmlFor="login-password">PASSWORD</label>
               <input
                 id="login-password"
                 type="password"

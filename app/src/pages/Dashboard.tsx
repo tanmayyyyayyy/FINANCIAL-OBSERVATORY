@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   Wallet,
@@ -7,25 +8,31 @@ import {
   Percent,
   ArrowRight,
   Plus,
-  Compass,
+  Receipt,
 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
+import { useAuth } from "../context/AuthContext";
 import { useBudgets } from "../context/BudgetsContext";
-import { Navbar } from "../components/Navbar";
 import { MetricCard } from "../components/MetricCard";
 import { SpendingChart } from "../components/SpendingChart";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
-import { QuickAddModal } from "../components/QuickAddModal";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import {
   computeFinancialSummary,
   computeDailySpendingSeries,
+  calculatePeriodComparison,
+  isIncomeTransaction,
 } from "../utils/analytics";
+import { EmptyState } from "../components/EmptyState";
+import type { TransactionType } from "../types";
+
+const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 export function Dashboard() {
+  const { openQuickAdd } = useOutletContext<{ openQuickAdd: (type?: TransactionType) => void }>();
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const { user } = useAuth();
 
   // Time-aware contextual greeting
   const greeting = useMemo(() => {
@@ -38,18 +45,22 @@ export function Dashboard() {
   const summary = useMemo(() => {
     return computeFinancialSummary(transactions, budgets);
   }, [transactions, budgets]);
+  const comparison = useMemo(() => calculatePeriodComparison(transactions), [transactions]);
 
   const chartSeries = useMemo(() => {
-    return computeDailySpendingSeries(transactions, 14);
+    return computeDailySpendingSeries(transactions, 30);
   }, [transactions]);
 
   const recentTransactions = transactions.slice(0, 5);
+  const displayName = user?.displayName?.trim() || user?.email || "there";
+  const trend = (change: number | null, lowerIsBetter = false) => change === null
+    ? { value: "No previous period" }
+    : { value: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`, isPositive: lowerIsBetter ? change < 0 : change > 0, isNegative: lowerIsBetter ? change > 0 : change < 0 };
 
   return (
     <div className="page-wrapper">
-      <Navbar onOpenQuickAdd={() => setIsQuickAddOpen(true)} />
 
-      <main className="content-wrapper">
+      <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Contextual Command Center Header */}
           <div
@@ -66,13 +77,13 @@ export function Dashboard() {
             <div>
               <div className="eyebrow">
                 <span className="dot" />
-                <span>OBSERVATORY TELEMETRY • LIVE RECONCILIATION</span>
+                <span>YOUR MONEY THIS MONTH</span>
               </div>
               <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
-                {greeting}, Tanmay.
+                {greeting}, {displayName}.
               </h1>
               <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.48)" }}>
-                Your financial picture, at a glance. Capital velocity and burn rates are nominal.
+                Your money at a glance. See what came in and what went out.
               </p>
             </div>
 
@@ -80,10 +91,10 @@ export function Dashboard() {
               <button
                 type="button"
                 className="button button-primary"
-                onClick={() => setIsQuickAddOpen(true)}
+                onClick={() => openQuickAdd()}
               >
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Log Movement</span>
+                <span>Add transaction</span>
               </button>
             </div>
           </div>
@@ -91,41 +102,53 @@ export function Dashboard() {
           {/* Primary Financial Metrics */}
           <section className="metrics-strip">
             <MetricCard
-              label="Net Balance"
+              label="Money Left"
               value={formatCurrency(summary.netBalance)}
-              subtext="vs previous cycle"
-              trend={{ value: "+8.4%", isPositive: true }}
+              numericValue={summary.netBalance}
+              formatValue={formatCurrency}
+              subtext="vs previous month to date"
+              trend={trend(comparison.balanceChange)}
               icon={<Wallet size={14} />}
             />
             <MetricCard
-              label="Monthly Outflow"
+              label="Money Out"
               value={formatCurrency(summary.totalSpent)}
-              subtext={`${summary.budgetUtilization.toFixed(0)}% of envelope`}
-              trend={{
-                value: `${summary.budgetUtilization > 100 ? "Over Budget" : "Nominal"}`,
-                isNegative: summary.budgetUtilization > 100,
-                isPositive: summary.budgetUtilization <= 100,
-              }}
+              numericValue={summary.totalSpent}
+              formatValue={formatCurrency}
+              subtext={`${summary.budgetUtilization.toFixed(0)}% of your budget`}
+              trend={trend(comparison.spendingChange, true)}
               icon={<TrendingDown size={14} />}
             />
             <MetricCard
-              label="Monthly Inflow"
+              label="Money In"
               value={formatCurrency(summary.monthlyIncome)}
-              subtext="reconciled deposits"
-              trend={{ value: "+0.0%", isPositive: false }}
+              numericValue={summary.monthlyIncome}
+              formatValue={formatCurrency}
+              subtext="vs previous month to date"
+              trend={trend(comparison.incomeChange)}
               icon={<TrendingUp size={14} />}
             />
             <MetricCard
-              label="Savings Ratio"
+              label="Saved"
               value={`${summary.savingsRate.toFixed(1)}%`}
-              subtext="capital retained"
-              trend={{ value: "+4.2%", isPositive: true }}
+              numericValue={summary.savingsRate}
+              formatValue={formatPercent}
+              subtext="vs previous month to date"
+              trend={comparison.savingsRateChange === null ? { value: "No previous period" } : { value: `${comparison.savingsRateChange > 0 ? "+" : ""}${comparison.savingsRateChange.toFixed(1)} pts`, isPositive: comparison.savingsRateChange > 0, isNegative: comparison.savingsRateChange < 0 }}
               icon={<Percent size={14} />}
             />
           </section>
 
           {/* Dominant Financial Terrain Visualization & Allocation Breakdown */}
-          <section
+          {transactions.length === 0 ? <section className="dashboard-zero-state">
+            <div className="eyebrow"><span className="dot" /> YOUR PERSONAL MONEY TRACKER</div>
+            <h2>Your money starts here</h2>
+            <p>Add money coming in or going out and we’ll start tracking it for you.</p>
+            <div className="dashboard-zero-actions">
+              <button type="button" className="button button-primary" onClick={() => openQuickAdd("income")}>Money In</button>
+              <button type="button" className="button button-secondary" onClick={() => openQuickAdd("expense")}>Money Out</button>
+            </div>
+          </section> : <section
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(0, 1.65fr) minmax(0, 1fr)",
@@ -134,9 +157,9 @@ export function Dashboard() {
             }}
             className="dashboard-main-grid animate-fade-in"
           >
-            <SpendingChart data={chartSeries} />
+            <SpendingChart data={chartSeries} onLogExpense={openQuickAdd} />
             <CategoryBreakdown categories={summary.categorySpends} monthlyIncome={summary.monthlyIncome} />
-          </section>
+          </section>}
 
           {/* Institutional Ledger Snippet & Forward Predictive Horizon */}
           <section
@@ -161,8 +184,8 @@ export function Dashboard() {
             >
               <div className="card-header" style={{ marginBottom: "18px" }}>
                 <div>
-                  <div className="eyebrow">TRANSACTION LOG</div>
-                  <h2 style={{ fontSize: "1.4rem", marginTop: "2px" }}>Recent Movements</h2>
+                    <div className="eyebrow">RECENT ACTIVITY</div>
+                    <h2 style={{ fontSize: "1.4rem", marginTop: "2px" }}>Recent activity</h2>
                 </div>
 
                 <Link
@@ -176,11 +199,10 @@ export function Dashboard() {
               </div>
 
               {recentTransactions.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "36px 0", color: "rgba(255,255,255,0.3)" }}>
-                  <div style={{ fontSize: "13px" }}>No transactions recorded in this cycle.</div>
-                </div>
+                <EmptyState title="Your ledger is clear" description="Add your first transaction to see recent activity and understand your cash flow." actionText="Add transaction" onAction={() => openQuickAdd()} />
               ) : (
-                <div className="ledger-table-container">
+                <>
+                <div className="ledger-table-container dashboard-recent-table">
                   <table className="ledger-table">
                     <thead>
                       <tr>
@@ -207,8 +229,8 @@ export function Dashboard() {
                             <span className="payment-method-tag">{tx.paymentMethod}</span>
                           </td>
                           <td style={{ textAlign: "right" }}>
-                            <span className="amount-debit">
-                              −{formatCurrency(tx.amount)}
+                            <span className={isIncomeTransaction(tx) ? "amount-credit" : "amount-debit"}>
+                              {isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}
                             </span>
                           </td>
                         </tr>
@@ -216,6 +238,19 @@ export function Dashboard() {
                     </tbody>
                   </table>
                 </div>
+                <div className="dashboard-mobile-transactions">
+                  {recentTransactions.map((tx) => (
+                    <div className="dashboard-mobile-transaction" key={tx.id}>
+                      <span className="transaction-category-icon" aria-hidden="true"><Receipt size={16} /></span>
+                      <span className="dashboard-mobile-transaction-copy">
+                        <strong>{tx.category}</strong>
+                        <span>{formatDate(tx.date)}</span>
+                      </span>
+                      <strong className={isIncomeTransaction(tx) ? "amount-credit" : "amount-debit"}>{isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}</strong>
+                    </div>
+                  ))}
+                </div>
+                </>
               )}
             </div>
 
@@ -238,15 +273,15 @@ export function Dashboard() {
                 <div className="card-header" style={{ marginBottom: "16px" }}>
                   <div>
                     <div className="eyebrow">
-                      <Compass size={11} />
+                      <span className="dot" />
                       <span>FORWARD HORIZON</span>
                     </div>
-                    <h2 style={{ fontSize: "1.4rem", marginTop: "2px" }}>Predictive Burn</h2>
+                    <h2 style={{ fontSize: "1.4rem", marginTop: "2px" }}>Month-end estimate</h2>
                   </div>
                 </div>
 
                 <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.48)", marginBottom: "20px", lineHeight: 1.65 }}>
-                  Based on current velocity, your projected month-end expenditure is:
+                  Based on your spending so far, you may spend this much by the end of the month:
                 </p>
 
                 <div
@@ -268,7 +303,7 @@ export function Dashboard() {
                       marginBottom: "6px",
                     }}
                   >
-                    PROJECTED OUTFLOW
+                    ESTIMATED MONTHLY SPENDING
                   </div>
                   <div
                     style={{
@@ -294,10 +329,10 @@ export function Dashboard() {
                     }}
                   >
                     {summary.projectedMonthEnd > summary.totalBudget
-                      ? `Exceeds budget envelope by ${formatCurrency(
+                      ? `Above budget by ${formatCurrency(
                           summary.projectedMonthEnd - summary.totalBudget
                         )}`
-                      : `Within budget ceiling by ${formatCurrency(
+                      : `Under budget by ${formatCurrency(
                           summary.totalBudget - summary.projectedMonthEnd
                         )}`}
                   </div>
@@ -314,8 +349,8 @@ export function Dashboard() {
                 >
                   {[
                     {
-                      label: "Velocity",
-                      value: `Current burn rate is ${formatCurrency(summary.spendingVelocity)}/day.`,
+                      label: "Daily average",
+                      value: `You have spent about ${formatCurrency(summary.spendingVelocity)} per day this month.`,
                     },
                     {
                       label: "Discretionary",
@@ -358,10 +393,6 @@ export function Dashboard() {
         </div>
       </main>
 
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-      />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, CheckCircle2, Shield, Layers, Target } from "lucide-react";
+import { ObservatoryMark } from "../components/ObservatoryMark";
 
 export function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [income, setIncome] = useState("85000");
+  const [income, setIncome] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([
     "Food & Dining",
     "Transport",
@@ -13,7 +14,7 @@ export function Onboarding() {
     "Entertainment",
     "Shopping",
   ]);
-  const [budgetLimit, setBudgetLimit] = useState("25000");
+  const [budgetLimit, setBudgetLimit] = useState("");
 
   const categoriesAvailable = [
     "Food & Dining",
@@ -58,6 +59,7 @@ export function Onboarding() {
           boxShadow: "0 32px 100px rgba(0, 0, 0, 0.85)",
         }}
       >
+        <div className="onboarding-brand"><span className="brand-icon-shield"><ObservatoryMark size={21} /></span><span>Financial Observatory</span></div>
         <Link
           to="/"
           style={{
@@ -97,17 +99,17 @@ export function Onboarding() {
           <div>
             <div className="eyebrow">
               <Shield size={12} />
-              <span>PHASE 01 / FINANCIAL BASELINE</span>
+              <span>STEP 1 OF 3 / MONTHLY INCOME</span>
             </div>
             <h1 style={{ fontSize: "1.9rem", marginBottom: "8px" }}>
-              Establish Baseline
+              Start with your income
             </h1>
             <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.5)", marginBottom: "28px" }}>
-              Provide your standard monthly cash inflow to calibrate savings telemetry and net runway.
+              Estimate how much money you usually receive each month. It does not need to be exact.
             </p>
 
             <div style={{ marginBottom: "24px" }}>
-              <label htmlFor="onboarding-income">ESTIMATED MONTHLY INFLOW (INR)</label>
+              <label htmlFor="onboarding-income">MONTHLY INCOME (INR)</label>
               <div style={{ position: "relative" }}>
                 <span
                   style={{
@@ -153,10 +155,10 @@ export function Onboarding() {
           <div>
             <div className="eyebrow">
               <Layers size={12} />
-              <span>PHASE 02 / CATEGORY TAXONOMY</span>
+              <span>STEP 2 OF 3 / CATEGORIES</span>
             </div>
             <h1 style={{ fontSize: "1.9rem", marginBottom: "8px" }}>
-              Select Expense Tracks
+              Choose your spending categories
             </h1>
             <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.5)", marginBottom: "24px" }}>
               Choose the core categories you want the observatory to monitor and balance.
@@ -218,17 +220,17 @@ export function Onboarding() {
           <div>
             <div className="eyebrow">
               <Target size={12} />
-              <span>PHASE 03 / BUDGET THRESHOLD</span>
+              <span>STEP 3 OF 3 / MONTHLY BUDGET</span>
             </div>
             <h1 style={{ fontSize: "1.9rem", marginBottom: "8px" }}>
-              Set Monthly Limit
+              Set a monthly budget
             </h1>
             <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.5)", marginBottom: "24px" }}>
-              Establish your total monthly spending ceiling to trigger velocity alerts.
+              Choose a monthly spending limit to help keep expenses on track.
             </p>
 
             <div style={{ marginBottom: "28px" }}>
-              <label htmlFor="onboarding-budget">MONTHLY SPEND CAP (INR)</label>
+              <label htmlFor="onboarding-budget">MONTHLY BUDGET (INR)</label>
               <div style={{ position: "relative" }}>
                 <span
                   style={{
@@ -274,7 +276,7 @@ export function Onboarding() {
                 onClick={handleComplete}
               >
                 <CheckCircle2 size={15} />
-                <span>Initialize Observatory</span>
+                <span>Finish setup</span>
               </button>
             </div>
           </div>

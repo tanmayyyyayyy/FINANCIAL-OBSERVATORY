@@ -2,14 +2,15 @@ import { useState } from "react";
 import { User, Bell, Tag, Download, RefreshCw, Check } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
-import { Navbar } from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 
 export function Settings() {
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
+  const { user, updateDisplayName } = useAuth();
 
-  const [name, setName] = useState("Tanmay Jain");
-  const [email, setEmail] = useState("tanmay@example.com");
+  const [name, setName] = useState(user?.displayName || "");
+  const email = user?.email || "";
   const [categories, setCategories] = useState([
     "Food & Dining",
     "Transport",
@@ -23,11 +24,18 @@ export function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [weeklyInsights, setWeeklyInsights] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
-  function handleSaveProfile(e: React.FormEvent) {
+  async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
+    setProfileError("");
+    try {
+      await updateDisplayName(name);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (cause) {
+      setProfileError(cause instanceof Error ? cause.message : "Unable to update your name.");
+    }
   }
 
   function handleAddCategory(e: React.FormEvent) {
@@ -64,7 +72,7 @@ export function Settings() {
   function handleResetSeed() {
     if (
       confirm(
-        "Purge and restore initial deterministic seed database? Current local movements will be reset."
+        "Clear older browser data? Transactions and budgets saved to your Firebase account will not be deleted."
       )
     ) {
       localStorage.removeItem("expense-tracker:transactions");
@@ -75,21 +83,20 @@ export function Settings() {
 
   return (
     <div className="page-wrapper">
-      <Navbar />
 
-      <main className="content-wrapper">
+      <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px", maxWidth: "860px" }}>
           {/* Header */}
           <div className="animate-slide-up" style={{ marginBottom: "36px" }}>
             <div className="eyebrow">
               <span className="dot" />
-              <span>SYSTEM CONFIGURATION • PARAMETERS</span>
+              <span>YOUR ACCOUNT</span>
             </div>
             <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
               Settings.
             </h1>
             <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.52)" }}>
-              Configure your personal observer profile, category taxonomy, and telemetry preferences.
+              Update your account name, spending categories, and preferences.
             </p>
           </div>
 
@@ -107,11 +114,11 @@ export function Settings() {
             <div>
               <div className="eyebrow">
                 <User size={12} />
-                <span>IDENTITY</span>
+                <span>ACCOUNT DETAILS</span>
               </div>
               <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Observer Profile</h2>
               <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
-                Name and credential anchors used across telemetry statements.
+                Choose the name you want to see in the app.
               </p>
             </div>
 
@@ -132,10 +139,12 @@ export function Settings() {
                     id="settings-email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
                   />
                 </div>
               </div>
+
+              {profileError && <div role="alert" style={{ color: "var(--accent-neg)", fontSize: "12px" }}>{profileError}</div>}
 
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "4px" }}>
                 <button type="submit" className="button button-primary" style={{ padding: "8px 18px" }}>
@@ -151,7 +160,7 @@ export function Settings() {
                       fontSize: "12.5px",
                     }}
                   >
-                    <Check size={13} /> Saved to local registry
+                    <Check size={13} /> Name saved to your account
                   </span>
                 )}
               </div>
@@ -172,11 +181,11 @@ export function Settings() {
             <div>
               <div className="eyebrow">
                 <Tag size={12} />
-                <span>TAXONOMY</span>
+                <span>SPENDING CATEGORIES</span>
               </div>
-              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Category Tracks</h2>
+              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Categories</h2>
               <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
-                Active channels monitored by the capital allocation engine.
+                Use categories to organize and review your spending.
               </p>
             </div>
 
@@ -220,13 +229,13 @@ export function Settings() {
               >
                 <input
                   type="text"
-                  placeholder="New track label..."
+                  placeholder="New category name"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                   style={{ flex: 1, padding: "7px 11px", fontSize: "12.5px" }}
                 />
                 <button type="submit" className="button button-secondary" style={{ padding: "7px 14px", fontSize: "12.5px" }}>
-                  Add Track
+                  Add category
                 </button>
               </form>
             </div>
@@ -246,11 +255,11 @@ export function Settings() {
             <div>
               <div className="eyebrow">
                 <Bell size={12} />
-                <span>DIAGNOSTICS</span>
+                <span>REMINDERS</span>
               </div>
               <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Preferences</h2>
               <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
-                Autonomous telemetry and variance notifications.
+                Choose which reminders and weekly summaries you want.
               </p>
             </div>
 
@@ -266,14 +275,16 @@ export function Settings() {
               >
                 <div>
                   <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px" }}>
-                    Velocity Over-run Warnings
+                    Budget reminders
                   </div>
                   <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)" }}>
-                    Trigger warnings when daily burn velocity projects an envelope deficit.
+                    Get a reminder when spending is close to a category budget.
                   </div>
                 </div>
                 <button
                   type="button"
+                  aria-pressed={notifications}
+                  aria-label={`Budget reminders ${notifications ? "on" : "off"}`}
                   onClick={() => setNotifications(!notifications)}
                   className={`button ${notifications ? "button-primary" : "button-secondary"}`}
                   style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px" }}
@@ -291,14 +302,16 @@ export function Settings() {
               >
                 <div>
                   <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px" }}>
-                    Weekly Telemetry Digest
+                    Weekly summary
                   </div>
                   <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)" }}>
-                    Generate consolidated analytical overview of weekly capital allocation.
+                    Review a summary of the money you recorded each week.
                   </div>
                 </div>
                 <button
                   type="button"
+                  aria-pressed={weeklyInsights}
+                  aria-label={`Weekly summary ${weeklyInsights ? "on" : "off"}`}
                   onClick={() => setWeeklyInsights(!weeklyInsights)}
                   className={`button ${weeklyInsights ? "button-primary" : "button-secondary"}`}
                   style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px" }}
@@ -324,11 +337,11 @@ export function Settings() {
             <div>
               <div className="eyebrow">
                 <Download size={12} />
-                <span>PERSISTENCE</span>
+                <span>YOUR DATA</span>
               </div>
               <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Data & Safety</h2>
               <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
-                Export local database snapshot or restore initial pristine seed state.
+                Download a copy of your recorded transactions and budgets.
               </p>
             </div>
 
@@ -346,12 +359,12 @@ export function Settings() {
 
                 <button
                   type="button"
-                  className="button button-danger"
+                  className="button button-secondary"
                   onClick={handleResetSeed}
                   style={{ fontSize: "12.5px" }}
                 >
                   <RefreshCw size={13} />
-                  <span>Reset Seed Database</span>
+                  <span>Clear Old Browser Data</span>
                 </button>
               </div>
             </div>

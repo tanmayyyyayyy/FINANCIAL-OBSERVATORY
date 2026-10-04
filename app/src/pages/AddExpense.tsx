@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Compass } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ObservatoryMark } from "../components/ObservatoryMark";
 import { useTransactions } from "../context/TransactionsContext";
-import type { PaymentMethod } from "../types";
+import type { PaymentMethod, TransactionType } from "../types";
+
+const expenseCategories = ["Food & Dining", "Transport", "Utilities", "Entertainment", "Shopping", "Housing", "Health", "Other"];
+const incomeCategories = ["Salary", "Pocket Money", "Freelance", "Gift", "Refund", "Other"];
 
 export function AddExpense() {
   const navigate = useNavigate();
   const { addTransaction } = useTransactions();
 
+  const [movementType, setMovementType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Food & Dining");
   const [description, setDescription] = useState("");
@@ -20,6 +25,7 @@ export function AddExpense() {
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     addTransaction({
+      type: movementType,
       amount: parsedAmount,
       category,
       description: description.trim() || category,
@@ -32,6 +38,7 @@ export function AddExpense() {
 
   return (
     <div
+      className="add-expense-shell"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -42,7 +49,7 @@ export function AddExpense() {
       }}
     >
       <div
-        className="observatory-card animate-fade-in"
+        className="observatory-card animate-fade-in add-expense-card"
         style={{
           width: "100%",
           maxWidth: "480px",
@@ -68,23 +75,28 @@ export function AddExpense() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
           <div className="brand-icon-shield">
-            <Compass size={14} />
+            <ObservatoryMark size={21} />
           </div>
           <div className="eyebrow" style={{ margin: 0 }}>
-            TRANSACTION INTELLIGENCE
+            {movementType === "income" ? "MONEY IN" : "MONEY OUT"}
           </div>
         </div>
 
         <h1 style={{ fontSize: "1.95rem", marginBottom: "6px" }}>
-          Record a transaction.
+          {movementType === "income" ? "Add money coming in." : "Add money going out."}
         </h1>
         <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.5)", marginBottom: "26px" }}>
-          Log the movement. The observatory will automatically reconcile trajectory.
+          {movementType === "income" ? "Record a deposit, gift, or refund." : "Record a purchase or payment."}
         </p>
 
-        <form onSubmit={handleRecord} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+        <div className="movement-type-switch" role="group" aria-label="Movement type">
+          {(["income", "expense"] as const).map((type) => <button key={type} type="button" aria-pressed={movementType === type} className={movementType === type ? "active" : ""} onClick={() => { setMovementType(type); setCategory(type === "income" ? "Salary" : "Food & Dining"); }}>
+            {type === "income" ? "Money In" : "Money Out"}
+          </button>)}
+        </div>
+        <form className="add-expense-form" onSubmit={handleRecord} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
           <div>
-            <label htmlFor="expense-amount">AMOUNT (INR)</label>
+            <label htmlFor="expense-amount">HOW MUCH? (INR)</label>
             <div style={{ position: "relative" }}>
               <span
                 style={{
@@ -122,25 +134,18 @@ export function AddExpense() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div>
-              <label htmlFor="expense-category">CATEGORY</label>
+              <label htmlFor="expense-category">{movementType === "income" ? "SOURCE · WHERE DID IT COME FROM?" : "CATEGORY"}</label>
               <select
                 id="expense-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="Food & Dining">Food & Dining</option>
-                <option value="Transport">Transport</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Housing">Housing</option>
-                <option value="Health">Health</option>
-                <option value="Other">Other</option>
+                {(movementType === "income" ? incomeCategories : expenseCategories).map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
 
             <div>
-              <label htmlFor="expense-payment">PAYMENT METHOD</label>
+              <label htmlFor="expense-payment">{movementType === "income" ? "RECEIVED VIA" : "PAYMENT METHOD"}</label>
               <select
                 id="expense-payment"
                 value={paymentMethod}
@@ -150,16 +155,17 @@ export function AddExpense() {
                 <option value="Credit Card">Credit Card</option>
                 <option value="Debit Card">Debit Card</option>
                 <option value="Cash">Cash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label htmlFor="expense-description">DESCRIPTION / MERCHANT</label>
+            <label htmlFor="expense-description">{movementType === "income" ? "NOTE (OPTIONAL)" : "DESCRIPTION / MERCHANT"}</label>
             <input
               id="expense-description"
               type="text"
-              placeholder="e.g. Swiggy, Uber, Supermarket, Electricity"
+              placeholder={movementType === "income" ? "Add a note (optional)" : "e.g. Swiggy, Uber, Supermarket, Electricity"}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -180,7 +186,7 @@ export function AddExpense() {
             className="button button-primary"
             style={{ width: "100%", padding: "12px", marginTop: "8px" }}
           >
-            <span>Record Movement</span>
+            <span>{movementType === "income" ? "Add Money In" : "Add Money Out"}</span>
             <ArrowRight size={14} />
           </button>
         </form>

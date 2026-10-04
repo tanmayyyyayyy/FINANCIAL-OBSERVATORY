@@ -61,8 +61,9 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
+      const storedTransaction = { ...transaction, type: transaction.type ?? "expense" };
       await addDoc(collection(db, "users", userId, "transactions"), {
-        ...transaction,
+        ...storedTransaction,
         createdAt: new Date().toISOString(),
       });
       setError(null);

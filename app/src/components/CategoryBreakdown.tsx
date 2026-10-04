@@ -1,5 +1,8 @@
 import { formatCurrency } from "../utils/formatters";
 import type { CategorySpend } from "../utils/analytics";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { EmptyState } from "./EmptyState";
+import { useEffect, useState } from "react";
 
 interface CategoryBreakdownProps {
   categories: CategorySpend[];
@@ -16,10 +19,24 @@ const CATEGORY_COLORS: Record<string, string> = {
   Health: "#14b8a6",
   Other: "#94a3b8",
 };
+const FALLBACK_COLORS = ["#cbd5e1", "#60a5fa", "#34d399", "#fbbf24", "#c084fc"];
 
 export function CategoryBreakdown({ categories, monthlyIncome }: CategoryBreakdownProps) {
-  const topCategories = categories.slice(0, 5);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const donutCategories = categories.filter((category) => category.spent > 0);
+  const topCategories = donutCategories.slice(0, 5);
   const totalSpent = categories.reduce((acc, c) => acc + c.spent, 0);
+  const colorFor = (category: string) => {
+    if (CATEGORY_COLORS[category]) return CATEGORY_COLORS[category];
+    const hash = [...category.toLowerCase()].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 7);
+    return FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
+  };
 
   return (
     <div
@@ -37,9 +54,9 @@ export function CategoryBreakdown({ categories, monthlyIncome }: CategoryBreakdo
       <div>
         <div className="card-header" style={{ marginBottom: "18px" }}>
           <div>
-            <div className="eyebrow">CAPITAL CONCENTRATION</div>
+            <div className="eyebrow">SPENDING BREAKDOWN</div>
             <h2 style={{ fontSize: "1.45rem", letterSpacing: "-0.02em", marginTop: "2px" }}>
-              Expense Allocation
+              Where Your Money Goes
             </h2>
           </div>
           <span
@@ -54,10 +71,23 @@ export function CategoryBreakdown({ categories, monthlyIncome }: CategoryBreakdo
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {topCategories.length === 0 ? <EmptyState title="Nothing to break down yet" description="Category totals will appear after you record expenses." /> : <>
+        <div className="category-donut-row">
+          <div className="category-donut" role="img" aria-label={`Spending categories total ${formatCurrency(totalSpent)}`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={donutCategories} dataKey="spent" nameKey="category" innerRadius="68%" outerRadius="94%" paddingAngle={2} stroke="none" isAnimationActive={!prefersReducedMotion}>
+                  {donutCategories.map((item) => <Cell key={item.category} fill={colorFor(item.category)} />)}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={{ background: "#111214", border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="category-donut-total"><strong>{formatCurrency(totalSpent)}</strong><span>SPENT</span></div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
           {topCategories.map((item) => {
             const share = totalSpent > 0 ? (item.spent / totalSpent) * 100 : 0;
-            const accentColor = CATEGORY_COLORS[item.category] || "#ffffff";
+            const accentColor = colorFor(item.category);
             const isOver = item.isOver && item.limit > 0;
 
             return (
@@ -174,6 +204,7 @@ export function CategoryBreakdown({ categories, monthlyIncome }: CategoryBreakdo
             );
           })}
         </div>
+        </div></>}
       </div>
 
       <div

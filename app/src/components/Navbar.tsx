@@ -7,20 +7,24 @@ import {
   TrendingUp,
   Settings as SettingsIcon,
   Plus,
-  Compass,
   LogOut,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { ObservatoryMark } from "./ObservatoryMark";
+import { UserAvatar } from "./UserAvatar";
 
 interface NavbarProps {
   onOpenQuickAdd?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
-export function Navbar({ onOpenQuickAdd }: NavbarProps) {
+export function Navbar({ onOpenQuickAdd, onOpenCommandPalette }: NavbarProps) {
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [timeString, setTimeString] = useState<string>("");
   const [scrolled, setScrolled] = useState(false);
+  const commandShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
 
   useEffect(() => {
     function updateClock() {
@@ -29,13 +33,12 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
         now.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
           hour12: false,
         })
       );
     }
     updateClock();
-    const interval = setInterval(updateClock, 1000);
+    const interval = setInterval(updateClock, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -50,9 +53,16 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
   const navLinks = [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { to: "/budgets", label: "Budgets", icon: PieChart },
-    { to: "/ledger", label: "Ledger", icon: BookOpen },
-    { to: "/prediction", label: "Predictions", icon: TrendingUp },
+    { to: "/ledger", label: "Transactions", icon: BookOpen },
+    { to: "/prediction", label: "Plan", icon: TrendingUp },
     { to: "/settings", label: "Settings", icon: SettingsIcon },
+  ];
+  const mobileLinks = [
+    { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { to: "/budgets", label: "Budgets", icon: PieChart },
+    { to: "/add-expense", label: "Add", icon: Plus },
+    { to: "/ledger", label: "Transactions", icon: Receipt },
+    { to: "/prediction", label: "Plan", icon: TrendingUp },
   ];
 
   return (
@@ -65,12 +75,11 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
         }}
       >
         <div className="top-navbar">
-          <Link to="/" className="navbar-brand" title="Financial Observatory">
+          <Link to="/dashboard" className="navbar-brand" title="Financial Observatory">
             <div className="brand-icon-shield">
-              <Compass size={13} strokeWidth={2.2} />
+              <ObservatoryMark size={21} />
             </div>
             <span className="brand-title">Financial Observatory</span>
-            <span className="brand-badge">PRO</span>
           </Link>
 
           <nav className="navbar-routes" aria-label="Main Navigation">
@@ -81,6 +90,7 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
                   key={item.to}
                   to={item.to}
                   className={`nav-link ${isActive ? "active" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   {item.label}
                 </Link>
@@ -89,7 +99,12 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
           </nav>
 
           <div className="navbar-actions">
-            <div className="system-status-indicator" title="System Operational — All telemetry live">
+            {onOpenCommandPalette && <button type="button" className="navbar-search-trigger" onClick={onOpenCommandPalette} aria-label="Open quick navigation" aria-keyshortcuts="Meta+K Control+K"><span>Search</span><kbd>{commandShortcut}</kbd></button>}
+            {user && <Link to="/settings" className="navbar-account" aria-label="Account settings">
+              <UserAvatar user={user} />
+              <span>{user.displayName || user.email}</span>
+            </Link>}
+            <div className="system-status-indicator" title="Current local time">
               <span className="status-pulse" />
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{timeString || "LIVE"}</span>
             </div>
@@ -102,12 +117,12 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
                 style={{ fontSize: "12.5px" }}
               >
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Log Movement</span>
+                <span>Add transaction</span>
               </button>
             ) : (
               <Link to="/add-expense" className="button button-primary" style={{ fontSize: "12.5px" }}>
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Log Movement</span>
+                <span>Add transaction</span>
               </Link>
             )}
 
@@ -138,14 +153,16 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
       {/* Mobile Bottom Dock Navigation */}
       <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
         <div className="mobile-nav-grid">
-          {navLinks.map((item) => {
+          {mobileLinks.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.to;
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`mobile-nav-item ${isActive ? "active" : ""}`}
+                className={`mobile-nav-item ${item.to === "/add-expense" ? "mobile-nav-add" : ""} ${isActive ? "active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.label === "Add" ? "Add money in or out" : item.label}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} />
                 <span>{item.label}</span>

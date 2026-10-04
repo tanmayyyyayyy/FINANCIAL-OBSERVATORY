@@ -35,3 +35,4 @@ pnpm-debug.log*
 .backup*
 *.bak*
 *.zip
+.firebase/

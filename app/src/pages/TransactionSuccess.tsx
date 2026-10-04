@@ -79,12 +79,12 @@ export function TransactionSuccess() {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
           <div className="eyebrow" style={{ margin: 0 }}>
             <span className="dot" style={{ background: "var(--accent-pos)" }} />
-            <span>SETTLEMENT COMMITTED</span>
+            <span>ALL SET</span>
           </div>
         </div>
 
         <h1 style={{ fontSize: "1.85rem", letterSpacing: "-0.03em", marginBottom: "10px" }}>
-          Movement Recorded.
+          Transaction added.
         </h1>
         <p
           style={{
@@ -94,7 +94,7 @@ export function TransactionSuccess() {
             lineHeight: 1.6,
           }}
         >
-          The transaction has been committed to the local ledger. Observatory burn telemetry and category allocations have been updated in real-time.
+          Your transaction was saved. Your totals and category spending now include this entry.
         </p>
 
         {/* Telemetry receipt box */}

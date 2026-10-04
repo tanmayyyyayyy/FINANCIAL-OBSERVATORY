@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Compass, ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { ObservatoryMark } from "../components/ObservatoryMark";
 import { useAuth } from "../context/AuthContext";
 import { firebaseErrorMessage } from "../firebase/errors";
 
@@ -87,7 +88,7 @@ export function Signup() {
         {/* Brand mark */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
           <div className="brand-icon-shield">
-            <Compass size={13} strokeWidth={2.2} />
+            <ObservatoryMark size={21} />
           </div>
           <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.02em" }}>
             Financial Observatory
@@ -107,9 +108,9 @@ export function Signup() {
             }}
           >
             {[
-              { step: "01", label: "Financial Baseline", desc: "Set your monthly income" },
-              { step: "02", label: "Category Taxonomy", desc: "Choose your expense tracks" },
-              { step: "03", label: "Budget Threshold", desc: "Establish spending ceiling" },
+              { step: "01", label: "Monthly income", desc: "Estimate money you receive" },
+              { step: "02", label: "Spending categories", desc: "Choose what to track" },
+              { step: "03", label: "Monthly budget", desc: "Set a spending limit" },
             ].map((item, idx) => (
               <div
                 key={item.step}
@@ -149,8 +150,7 @@ export function Signup() {
             Initialize your financial<br />observatory in 3 steps.
           </h2>
           <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>
-            Configure your income baseline, select the categories you want to track,
-            and set your monthly budget ceiling.
+            Add a few details to get started. You can change your budgets and categories later.
           </p>
 
           <div
@@ -211,11 +211,11 @@ export function Signup() {
           </div>
 
           <div className="eyebrow" style={{ marginBottom: "12px" }}>
-            OBSERVER INITIALIZATION
+            CREATE YOUR ACCOUNT
           </div>
-          <h1 style={{ fontSize: "2.0rem", marginBottom: "8px" }}>Build your observatory.</h1>
+          <h1 style={{ fontSize: "2.0rem", marginBottom: "8px" }}>Create your account.</h1>
           <p style={{ fontSize: "13.5px", color: "rgba(255, 255, 255, 0.45)", marginBottom: "28px", lineHeight: 1.6 }}>
-            Configure your dedicated financial intelligence environment.
+            Your account keeps your transactions and budgets in one place.
           </p>
 
           {error && (
@@ -243,7 +243,7 @@ export function Signup() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Tanmay Jain"
+                placeholder="Enter your name"
               />
             </div>
 
@@ -261,7 +261,7 @@ export function Signup() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
-                <label htmlFor="signup-password">PASSPHRASE</label>
+                  <label htmlFor="signup-password">PASSWORD</label>
                 <input
                   id="signup-password"
                   type="password"
@@ -290,7 +290,7 @@ export function Signup() {
               disabled={isSubmitting}
               style={{ width: "100%", padding: "12px", marginTop: "8px" }}
             >
-              <span>{isSubmitting ? "Initializing..." : "Initialize Account"}</span>
+              <span>{isSubmitting ? "Creating account..." : "Create Account"}</span>
               <ArrowRight size={14} />
             </button>
           </form>

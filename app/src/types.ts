@@ -1,4 +1,5 @@
-export type PaymentMethod = "UPI" | "Credit Card" | "Debit Card" | "Cash";
+export type PaymentMethod = "UPI" | "Credit Card" | "Debit Card" | "Cash" | "Bank Transfer";
+export type TransactionType = "income" | "expense";
 
 export interface Transaction {
   id: string;
@@ -8,7 +9,7 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   date: string;      // ISO date, e.g. "2026-08-12"
   createdAt: string; // ISO timestamp
-  type?: string;
+  type?: TransactionType;
 }
 
 export interface Budget {

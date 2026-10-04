@@ -1,32 +1,70 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, ArrowRight } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
-import type { PaymentMethod } from "../types";
+import type { PaymentMethod, TransactionType } from "../types";
+import { containDialogFocus } from "../utils/dialogFocus";
 
 interface QuickAddModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialType?: TransactionType;
 }
 
-export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps) {
+const expenseCategories = ["Food & Dining", "Transport", "Utilities", "Entertainment", "Shopping", "Housing", "Health", "Other"];
+const incomeCategories = ["Salary", "Pocket Money", "Freelance", "Gift", "Refund", "Other"];
+
+export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expense" }: QuickAddModalProps) {
   const { addTransaction } = useTransactions();
 
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Food & Dining");
+  const [movementType, setMovementType] = useState<TransactionType>(initialType);
+  const [category, setCategory] = useState(initialType === "income" ? "Salary" : "Food & Dining");
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("UPI");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  function requestClose() {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(onClose, 170);
+  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
+        if (e.key === "Escape" && isOpen) {
+          requestClose();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closing]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setClosing(false);
+      setMovementType(initialType);
+      setCategory(initialType === "income" ? "Salary" : "Food & Dining");
+    }
+    return () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    };
+  }, [isOpen, initialType]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !panelRef.current) return;
+    return containDialogFocus(panelRef.current);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -36,6 +74,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     addTransaction({
+      type: movementType,
       amount: parsedAmount,
       category,
       description: description.trim() || category,
@@ -52,13 +91,15 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
   return (
     <div
       className="modal-backdrop"
+      data-closing={closing ? "true" : undefined}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="quick-add-title"
     >
-      <div className="modal-panel">
+      <div className="modal-panel" ref={panelRef} tabIndex={-1}>
         <div
           style={{
             position: "absolute",
@@ -82,9 +123,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
           <div>
             <div className="eyebrow">
               <span className="dot" />
-              <span>RECORD OUTFLOW</span>
+              <span>{movementType === "income" ? "RECORD MONEY IN" : "RECORD MONEY OUT"}</span>
             </div>
-            <h2 style={{ fontSize: "1.35rem", letterSpacing: "-0.02em" }}>Log Transaction</h2>
+            <h2 id="quick-add-title" style={{ fontSize: "1.35rem", letterSpacing: "-0.02em" }}>{movementType === "income" ? "Add Money In" : "Add Money Out"}</h2>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -104,7 +145,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
             <button
               type="button"
               className="button-icon"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label="Close dialog"
             >
               <X size={16} />
@@ -112,9 +153,14 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
           </div>
         </div>
 
+        <div className="movement-type-switch" role="group" aria-label="Movement type">
+          {(["income", "expense"] as const).map((type) => <button key={type} type="button" aria-pressed={movementType === type} className={movementType === type ? "active" : ""} onClick={() => { setMovementType(type); setCategory(type === "income" ? "Salary" : "Food & Dining"); }}>
+            {type === "income" ? "Money In" : "Money Out"}
+          </button>)}
+        </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
-            <label htmlFor="modal-amount">AMOUNT (INR)</label>
+            <label htmlFor="modal-amount">HOW MUCH? (INR)</label>
             <div style={{ position: "relative" }}>
               <span
                 style={{
@@ -152,25 +198,18 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div>
-              <label htmlFor="modal-category">CATEGORY</label>
+              <label htmlFor="modal-category">{movementType === "income" ? "SOURCE · WHERE DID IT COME FROM?" : "CATEGORY"}</label>
               <select
                 id="modal-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="Food & Dining">Food & Dining</option>
-                <option value="Transport">Transport</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Housing">Housing</option>
-                <option value="Health">Health</option>
-                <option value="Other">Other</option>
+                {(movementType === "income" ? incomeCategories : expenseCategories).map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
 
             <div>
-              <label htmlFor="modal-payment">PAYMENT METHOD</label>
+              <label htmlFor="modal-payment">{movementType === "income" ? "RECEIVED VIA" : "PAYMENT METHOD"}</label>
               <select
                 id="modal-payment"
                 value={paymentMethod}
@@ -180,16 +219,17 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
                 <option value="Credit Card">Credit Card</option>
                 <option value="Debit Card">Debit Card</option>
                 <option value="Cash">Cash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label htmlFor="modal-description">MERCHANT / DESCRIPTION</label>
+            <label htmlFor="modal-description">{movementType === "income" ? "NOTE (OPTIONAL)" : "MERCHANT / DESCRIPTION"}</label>
             <input
               id="modal-description"
               type="text"
-              placeholder="e.g. Swiggy, Uber, Amazon, Netflix"
+              placeholder={movementType === "income" ? "Add a note (optional)" : "e.g. Swiggy, Uber, Amazon, Netflix"}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -240,11 +280,11 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
             </span>
 
             <div style={{ display: "flex", gap: "10px" }}>
-              <button type="button" className="button button-ghost" onClick={onClose}>
+              <button type="button" className="button button-ghost" onClick={requestClose}>
                 Cancel
               </button>
               <button type="submit" className="button button-primary">
-                <span>Commit Entry</span>
+                <span>{movementType === "income" ? "Add Money In" : "Add Money Out"}</span>
                 <ArrowRight size={14} />
               </button>
             </div>

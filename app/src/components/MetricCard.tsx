@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
 interface MetricCardProps {
   label: string;
   value: string;
+  numericValue?: number;
+  formatValue?: (value: number) => string;
   subtext: string;
   trend?: {
     value: string;
@@ -19,7 +21,32 @@ export function MetricCard({
   subtext,
   trend,
   icon,
+  numericValue,
+  formatValue,
 }: MetricCardProps) {
+  const [animatedValue, setAnimatedValue] = useState(numericValue ?? 0);
+  useEffect(() => {
+    if (numericValue === undefined || !formatValue) return;
+    const target = Number.isFinite(numericValue) ? numericValue : 0;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setAnimatedValue(target);
+      return;
+    }
+    let frame = 0;
+    let start = 0;
+    const from = 0;
+    const duration = 650;
+    const tick = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const progress = Math.min(1, (timestamp - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimatedValue(from + (target - from) * eased);
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [numericValue, formatValue]);
+  const displayValue = numericValue !== undefined && formatValue ? formatValue(animatedValue) : value;
   return (
     <div className="metric-column">
       <div className="metric-header">
@@ -27,7 +54,7 @@ export function MetricCard({
         {icon && <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>{icon}</div>}
       </div>
 
-      <div className="metric-value tabular-numbers">{value}</div>
+      <div className="metric-value tabular-numbers" aria-live="off">{displayValue}</div>
 
       <div className="metric-footer">
         {trend && (
