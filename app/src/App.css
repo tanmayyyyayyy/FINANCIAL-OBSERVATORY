@@ -1,0 +1,5 @@
+/* App.tsx only imports "./index.css" — it does not import this file.
+   All Financial Observatory styles live in index.css so there is a single
+   source of truth and no risk of duplicate/conflicting selectors between
+   two stylesheets. Keeping this file present (and empty) in case anything
+   in your build still references it. Safe to delete once confirmed unused. */
