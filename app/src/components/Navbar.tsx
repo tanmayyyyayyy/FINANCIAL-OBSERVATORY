@@ -8,7 +8,9 @@ import {
   Settings as SettingsIcon,
   Plus,
   Compass,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 interface NavbarProps {
   onOpenQuickAdd?: () => void;
@@ -16,6 +18,7 @@ interface NavbarProps {
 
 export function Navbar({ onOpenQuickAdd }: NavbarProps) {
   const location = useLocation();
+  const { signOut } = useAuth();
   const [timeString, setTimeString] = useState<string>("");
   const [scrolled, setScrolled] = useState(false);
 
@@ -119,6 +122,15 @@ export function Navbar({ onOpenQuickAdd }: NavbarProps) {
             >
               <SettingsIcon size={14} />
             </Link>
+            <button
+              type="button"
+              className="button-icon"
+              title="Sign out"
+              aria-label="Sign out"
+              onClick={() => void signOut().catch(() => undefined)}
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
       </header>

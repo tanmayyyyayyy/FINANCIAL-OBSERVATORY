@@ -1,57 +1,95 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import type { Transaction } from "../types";
-
-const STORAGE_KEY = "expense-tracker:transactions";
-
-const seedTransactions: Transaction[] = [
-  { id: "seed-1", amount: 840, category: "Food & Dining", description: "", paymentMethod: "UPI", date: "2026-08-01", createdAt: "2026-08-01T09:00:00.000Z" },
-  { id: "seed-2", amount: 320, category: "Transport", description: "", paymentMethod: "UPI", date: "2026-08-03", createdAt: "2026-08-03T09:00:00.000Z" },
-  { id: "seed-3", amount: 1200, category: "Entertainment", description: "", paymentMethod: "Credit Card", date: "2026-08-05", createdAt: "2026-08-05T09:00:00.000Z" },
-  { id: "seed-4", amount: 2450, category: "Utilities", description: "", paymentMethod: "Debit Card", date: "2026-08-07", createdAt: "2026-08-07T09:00:00.000Z" },
-  { id: "seed-5", amount: 1890, category: "Shopping", description: "", paymentMethod: "Credit Card", date: "2026-08-08", createdAt: "2026-08-08T09:00:00.000Z" },
-  { id: "seed-6", amount: 560, category: "Food & Dining", description: "", paymentMethod: "Cash", date: "2026-08-09", createdAt: "2026-08-09T09:00:00.000Z" },
-];
+import { useAuth } from "./AuthContext";
+import { db } from "../firebase/firebase";
+import { firebaseErrorMessage } from "../firebase/errors";
 
 interface TransactionsContextValue {
   transactions: Transaction[];
-  addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => void;
-  deleteTransaction: (id: string) => void;
+  error: string | null;
+  clearError: () => void;
+  addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 }
 
 const TransactionsContext = createContext<TransactionsContextValue | undefined>(undefined);
 
-function loadInitial(): Transaction[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Transaction[];
-  } catch {
-    // ignore corrupt storage, fall through to seed
-  }
-  return seedTransactions;
-}
-
 export function TransactionsProvider({ children }: { children: ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>(loadInitial);
+  const { user } = useAuth();
+  const userId = user?.uid ?? null;
+  const [savedTransactions, setSavedTransactions] = useState<{
+    userId: string | null;
+    transactions: Transaction[];
+  }>({ userId: null, transactions: [] });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-  }, [transactions]);
+    setError(null);
+    if (!userId) {
+      setSavedTransactions({ userId: null, transactions: [] });
+      return;
+    }
+    if (!db) {
+      setError("Firebase web configuration is incomplete. Add the Firebase web app values to app/.env.");
+      return;
+    }
 
-  function addTransaction(t: Omit<Transaction, "id" | "createdAt">) {
-    const newTransaction: Transaction = {
-      ...t,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
+    const database = db;
+    const transactionsQuery = query(
+      collection(database, "users", userId, "transactions"),
+      orderBy("createdAt", "desc"),
+    );
+    return onSnapshot(
+      transactionsQuery,
+      (snapshot) => {
+        setSavedTransactions({
+          userId,
+          transactions: snapshot.docs.map(
+            (transactionDocument) =>
+              ({ ...transactionDocument.data(), id: transactionDocument.id }) as Transaction,
+          ),
+        });
+      },
+      (cause) => setError(firebaseErrorMessage(cause, "Unable to load transactions.")),
+    );
+  }, [userId]);
+
+  async function addTransaction(transaction: Omit<Transaction, "id" | "createdAt">) {
+    if (!userId || !db) {
+      setError("Sign in with a configured Firebase account to add transactions.");
+      return;
+    }
+    try {
+      await addDoc(collection(db, "users", userId, "transactions"), {
+        ...transaction,
+        createdAt: new Date().toISOString(),
+      });
+      setError(null);
+    } catch (cause) {
+      setError(firebaseErrorMessage(cause, "Unable to save this transaction."));
+    }
   }
 
-  function deleteTransaction(id: string) {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  async function deleteTransaction(id: string) {
+    if (!userId || !db) {
+      setError("Sign in with a configured Firebase account to delete transactions.");
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, "users", userId, "transactions", id));
+      setError(null);
+    } catch (cause) {
+      setError(firebaseErrorMessage(cause, "Unable to delete this transaction."));
+    }
   }
+
+  const transactions = savedTransactions.userId === userId ? savedTransactions.transactions : [];
 
   return (
-    <TransactionsContext.Provider value={{ transactions, addTransaction, deleteTransaction }}>
+    <TransactionsContext.Provider
+      value={{ transactions, error, clearError: () => setError(null), addTransaction, deleteTransaction }}
+    >
       {children}
     </TransactionsContext.Provider>
   );

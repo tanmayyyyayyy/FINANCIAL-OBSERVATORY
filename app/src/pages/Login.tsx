@@ -1,15 +1,32 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Compass, ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { firebaseErrorMessage } from "../firebase/errors";
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("tanmay@example.com");
-  const [password, setPassword] = useState("••••••••");
+  const location = useLocation();
+  const { signIn, clearError } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    navigate("/dashboard");
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await signIn(email, password);
+      const destination = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(destination || "/dashboard", { replace: true });
+    } catch (cause) {
+      clearError();
+      setError(firebaseErrorMessage(cause, "Unable to sign in. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -200,6 +217,23 @@ export function Login() {
             Enter your observer credentials to access your financial telemetry.
           </p>
 
+          {error && (
+            <div
+              role="alert"
+              style={{
+                padding: "10px 14px",
+                background: "var(--accent-neg-bg)",
+                border: "1px solid var(--accent-neg-border)",
+                borderRadius: "var(--radius-sm)",
+                color: "var(--accent-neg)",
+                fontSize: "13px",
+                marginBottom: "16px",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
               <label htmlFor="login-email">EMAIL ADDRESS</label>
@@ -228,9 +262,10 @@ export function Login() {
             <button
               type="submit"
               className="button button-primary"
+              disabled={isSubmitting}
               style={{ width: "100%", padding: "12px", marginTop: "8px" }}
             >
-              <span>Sign In</span>
+              <span>{isSubmitting ? "Signing In..." : "Sign In"}</span>
               <ArrowRight size={14} />
             </button>
           </form>

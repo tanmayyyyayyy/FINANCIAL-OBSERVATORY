@@ -1,22 +1,36 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Compass, ArrowRight, ArrowLeft, Activity } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { firebaseErrorMessage } from "../firebase/errors";
 
 export function Signup() {
   const navigate = useNavigate();
-  const [name, setName] = useState("Tanmay Jain");
-  const [email, setEmail] = useState("tanmay@example.com");
+  const { signUp, clearError } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSignup(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (password && confirmPassword && password !== confirmPassword) {
       setError("Passphrases do not match");
       return;
     }
-    navigate("/onboarding");
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await signUp(email, password, name);
+      navigate("/onboarding", { replace: true });
+    } catch (cause) {
+      clearError();
+      setError(firebaseErrorMessage(cause, "Unable to create the account. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -273,9 +287,10 @@ export function Signup() {
             <button
               type="submit"
               className="button button-primary"
+              disabled={isSubmitting}
               style={{ width: "100%", padding: "12px", marginTop: "8px" }}
             >
-              <span>Initialize Account</span>
+              <span>{isSubmitting ? "Initializing..." : "Initialize Account"}</span>
               <ArrowRight size={14} />
             </button>
           </form>
