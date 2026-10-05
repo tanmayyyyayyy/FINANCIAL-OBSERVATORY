@@ -37,7 +37,8 @@ export async function generateJson<T>({ prompt, schema, image, tools }: Generate
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 1400,
-          responseFormat: { text: { mimeType: "application/json", schema } },
+          responseMimeType: "application/json",
+          responseSchema: schema,
         },
       }),
       signal: AbortSignal.timeout(30_000),
@@ -80,7 +81,7 @@ export async function generateJsonWithTools<T>(options: {
           contents,
           ...(hasToolResults ? {} : { tools: options.tools }),
           generationConfig: hasToolResults
-            ? { temperature: 0.15, maxOutputTokens: 1600, responseFormat: { text: { mimeType: "application/json", schema: options.schema } } }
+            ? { temperature: 0.15, maxOutputTokens: 1600, responseMimeType: "application/json", responseSchema: options.schema }
             : { temperature: 0.15, maxOutputTokens: 1600 },
         }),
         signal: AbortSignal.timeout(30_000),
