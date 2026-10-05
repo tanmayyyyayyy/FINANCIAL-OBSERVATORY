@@ -33,7 +33,7 @@ export interface ReceiptDraft {
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD
-    ? "https://smart-expense-tracker-1f68.onrender.com"
+    ? "https://smart-expense-tracker-q1sh.onrender.com"
     : "http://localhost:5001")
 ).replace(/\/$/, "");
 

@@ -40,7 +40,7 @@ services:
 
       # ---- CORS: set to your Render frontend URL ----
       - key: FRONTEND_ORIGIN
-        value: https://financial-observatory-client.onrender.com
+        value: https://smart-expense-tracker-1-2lsb.onrender.com
 
   # -----------------------------------------------------------
   # Frontend: Render Static Site
@@ -59,7 +59,7 @@ services:
     envVars:
       # ---- Backend API base URL ----
       - key: VITE_API_BASE_URL
-        value: https://smart-expense-tracker-1f68.onrender.com
+        value: https://smart-expense-tracker-q1sh.onrender.com
 
       # ---- Firebase Web SDK (non-secret, safe to bake into bundle) ----
       - key: VITE_FIREBASE_API_KEY
