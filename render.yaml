@@ -58,10 +58,9 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      # ---- Backend API base URL (set to your Render API service URL) ----
-      # Example: https://financial-observatory-api.onrender.com
+      # ---- Backend API base URL ----
       - key: VITE_API_BASE_URL
-        sync: false
+        value: https://smart-expense-tracker-1f68.onrender.com
 
       # ---- Firebase Web SDK (non-secret, safe to bake into bundle) ----
       - key: VITE_FIREBASE_API_KEY

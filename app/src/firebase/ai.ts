@@ -29,8 +29,13 @@ export interface ReceiptDraft {
   confidence: number;
 }
 
-// Configurable Render API base URL, defaulting to local server in development
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5001").replace(/\/$/, "");
+// Configurable Render API base URL: defaults to production backend in prod, or localhost:5001 in dev
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://smart-expense-tracker-1f68.onrender.com"
+    : "http://localhost:5001")
+).replace(/\/$/, "");
 
 async function getAuthToken(): Promise<string> {
   const currentUser = auth?.currentUser;
