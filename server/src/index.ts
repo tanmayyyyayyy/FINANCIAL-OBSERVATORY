@@ -17,9 +17,13 @@ app.use((req, _res, next) => {
 
 // Allowed frontend origins for CORS
 const rawOrigin = process.env.FRONTEND_ORIGIN || process.env.CLIENT_ORIGIN;
-const allowedOrigins = rawOrigin
-  ? rawOrigin.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://localhost:4173", "http://127.0.0.1:5173"];
+const allowedOrigins = [
+  ...(rawOrigin ? rawOrigin.split(",").map((s: string) => s.trim()) : []),
+  "https://smart-expense-tracker-1-2lsb.onrender.com",
+  "http://localhost:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:5173",
+];
 
 app.use(
   cors({
