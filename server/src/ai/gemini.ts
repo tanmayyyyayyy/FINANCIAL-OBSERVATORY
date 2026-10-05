@@ -22,27 +22,51 @@ function getApiKey(): string {
   return key;
 }
 
+const RETRY_DELAY_MS = 2000;
+const MAX_RETRIES = 2;
+
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  let lastResponse: Response | undefined;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      console.log(`[GEMINI] Retrying after 503 (attempt ${attempt}/${MAX_RETRIES})`);
+    }
+    let response: Response;
+    try {
+      response = await fetch(url, { ...init, signal: AbortSignal.timeout(30_000) });
+    } catch {
+      throw new Error("AI_UNAVAILABLE");
+    }
+    if (response.status !== 503) return response;
+    lastResponse = response;
+  }
+  return lastResponse!;
+}
+
 export async function generateJson<T>({ prompt, schema, image, tools }: GenerateJsonOptions): Promise<T> {
   const parts: Array<Record<string, unknown>> = [{ text: prompt }];
   if (image) parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
 
   let response: Response;
   try {
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        ...(tools ? { tools } : {}),
-        generationConfig: {
-          temperature: 0.15,
-          maxOutputTokens: 1400,
-          responseMimeType: "application/json",
-          responseSchema: schema,
-        },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
+    response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          ...(tools ? { tools } : {}),
+          generationConfig: {
+            temperature: 0.15,
+            maxOutputTokens: 1400,
+            responseMimeType: "application/json",
+            responseSchema: schema,
+          },
+        }),
+      }
+    );
   } catch {
     throw new Error("AI_UNAVAILABLE");
   }
@@ -80,18 +104,20 @@ export async function generateJsonWithTools<T>(options: {
   for (let iteration = 0; iteration < 4; iteration += 1) {
     let response: Response;
     try {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() },
-        body: JSON.stringify({
-          contents,
-          ...(hasToolResults ? {} : { tools: options.tools }),
-          generationConfig: hasToolResults
-            ? { temperature: 0.15, maxOutputTokens: 1600, responseMimeType: "application/json", responseSchema: options.schema }
-            : { temperature: 0.15, maxOutputTokens: 1600 },
-        }),
-        signal: AbortSignal.timeout(30_000),
-      });
+      response = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() },
+          body: JSON.stringify({
+            contents,
+            ...(hasToolResults ? {} : { tools: options.tools }),
+            generationConfig: hasToolResults
+              ? { temperature: 0.15, maxOutputTokens: 1600, responseMimeType: "application/json", responseSchema: options.schema }
+              : { temperature: 0.15, maxOutputTokens: 1600 },
+          }),
+        }
+      );
     } catch {
       throw new Error("AI_UNAVAILABLE");
     }
