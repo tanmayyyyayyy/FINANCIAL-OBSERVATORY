@@ -1,298 +1,234 @@
-# Financial Observatory
+<div align="center">
 
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=flat-square&logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-4-000000?style=flat-square&logo=express&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)
-![Gemini](https://img.shields.io/badge/Gemini-AI-4285F4?style=flat-square&logo=google&logoColor=white)
-![Render](https://img.shields.io/badge/Render-Deployed-46E3B7?style=flat-square&logo=render&logoColor=black)
+# FINANCIAL OBSERVATORY
 
-> **See where your money goes.**
+> See where your money goes.
 
-Financial Observatory is an AI-powered personal finance platform. It gives you a clear picture of your money — what comes in, what goes out, where it goes, and where it is heading. An AI assistant lets you ask questions about your finances in plain language and helps you add transactions, parse receipts, and set savings goals faster.
+An AI-powered personal finance observatory for understanding what comes in, what goes out, where you spend, and where your money may be heading.
+
+[![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)](https://vite.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-ffca28?logo=firebase&logoColor=222)](https://firebase.google.com/)
+[![Gemini](https://img.shields.io/badge/AI-Gemini-8e75b2)](https://ai.google.dev/)
+[![Render](https://img.shields.io/badge/Deployed-Render-46e3b7?logo=render&logoColor=222)](https://render.com/)
+
+[![Live Demo](https://img.shields.io/badge/OPEN-Live%20Demo-5b49e8?style=for-the-badge)](https://smart-expense-tracker-1-2lsb.onrender.com)
+[![GitHub](https://img.shields.io/badge/VIEW-GitHub-171717?style=for-the-badge&logo=github)](https://github.com/tanmayyyyayyy/Smart-Expense-Tracker)
+[![API Status](https://img.shields.io/badge/API-Health%20Check-159a72?style=for-the-badge)](https://smart-expense-tracker-q1sh.onrender.com/health)
+
+<br />
+
+[Live Demo](#live-product) &nbsp;•&nbsp; [Dashboard](#financial-dashboard) &nbsp;•&nbsp; [Architecture](#architecture) &nbsp;•&nbsp; [Local Setup](#local-development)
+
+</div>
 
 ---
+
+## The Idea
+
+Most expense trackers answer **“What did I spend?”** Financial Observatory is designed to help answer **“What’s happening with my money?”**
+
+It brings income, spending, budgets, trends, projections, and natural-language questions into one place. The aim is financial visibility that makes everyday decisions easier: understand your habits, notice changes, and compare your current pace with your plans.
+
+```text
+Income → Spending → Budgets → Trends → Projections → Decisions
+```
+
+Financial calculations come from explicit application logic. AI helps interpret questions and prepare drafts; it does not replace financial records or provide professional financial advice.
 
 ## Live Product
 
 | Service | URL |
-|---|---|
-| **Frontend** | https://smart-expense-tracker-1-2lsb.onrender.com |
-| **Backend API** | https://smart-expense-tracker-q1sh.onrender.com |
-| **Health check** | `GET /health` → `{"ok":true,"service":"financial-observatory-api"}` |
+| --- | --- |
+| Frontend | [smart-expense-tracker-1-2lsb.onrender.com](https://smart-expense-tracker-1-2lsb.onrender.com) |
+| Backend API | [smart-expense-tracker-q1sh.onrender.com](https://smart-expense-tracker-q1sh.onrender.com) |
+| Health check | [`GET /health`](https://smart-expense-tracker-q1sh.onrender.com/health) |
+| Repository | [github.com/tanmayyyyayyy/Smart-Expense-Tracker](https://github.com/tanmayyyyayyy/Smart-Expense-Tracker) |
 
-Both services run on Render. The frontend is a static React/Vite SPA. The backend is a Node/Express API that handles AI requests with Firebase Admin authentication.
-
----
+The frontend is a React/Vite single-page app deployed as a Render Static Site. The Node/Express API runs as a Render Web Service. Firebase Authentication and Firestore provide sign-in and financial data storage; AI requests go through the backend.
 
 ## Product Preview
 
-Screenshots can be added here once captured from the live environment.
+> Product screenshots coming soon.
 
-```
-app/src/assets/   ← place screenshots here and reference them below:
-![Dashboard](app/src/assets/dashboard.png)
-```
-
----
-
-## Why Financial Observatory
-
-| | |
-|---|---|
-| **Understand** | Track money coming in and going out. See your net position at a glance. |
-| **See** | Visualize spending by category, period, and trend with interactive charts. |
-| **Plan** | Set category budgets, track progress, and forecast future spending. |
-| **Ask** | Ask questions about your finances in plain language using the AI assistant. |
-
----
-
-## Core Features
+## What Financial Observatory Does
 
 ### Financial Dashboard
 
-- **Money In / Money Out / Money Left** — three primary financial metrics computed from recorded transactions and your income profile
-- Spending summary cards with period filtering
-- Category breakdown chart
-- Recent transaction activity feed
-- AI-generated weekly spending insights
+See Money In, Money Out, and Money Left alongside category spending, recent transactions, budget context, daily activity, period comparisons, and weekly AI insights.
 
-### Transaction Management
+### Transactions & Ledger
 
-- Add expenses and income with categorization, date, payment method, and merchant
-- Full transaction ledger with search and filter
-- Edit and delete transactions
-- Statement import — upload a bank/UPI statement PDF and extract transactions (PDF.js + AI parsing)
-- Natural-language transaction entry — describe a transaction in plain text and the AI parses the details for confirmation before saving
+Record income and expenses with an amount, category, date, payment method, and description. Search, filter, and sort the ledger, then edit or delete entries. Quick entry can parse natural-language transaction descriptions into editable drafts.
 
 ### Budgets
 
-- Set per-category spending budgets
-- Real-time budget progress tracking (spent vs. limit)
-- Visual status indicators (on track / approaching / over)
-- Budget-aware insights on the dashboard
+Set monthly category limits and compare them with recorded spending. Budget views show headroom and status indicators; onboarding also saves a monthly income and overall budget to the user's profile.
 
 ### Spending Prediction
 
-- Forecasted spending based on historical transaction data
-- Trend visualization across time periods
-- Dedicated prediction page with chart breakdowns
+Explore an arithmetic month-end run-rate estimate based on recorded activity and income. Interactive overall and category-level scenarios show how changed spending could affect the estimate. It is a scenario projection, not a machine-learned forecast.
 
-### AI Financial Assistant — Ask Your Money
+### Ask Your Money
 
-A conversational panel accessible from the navigation bar and the command palette (`⌘K`).
+Ask natural-language questions about your own spending, budgets, recent transactions, and trends. For example:
 
-- Ask questions about your spending, budgets, and trends in plain language
-- The assistant calls server-side financial data tools before answering — spending summaries, budget status, category trends, transaction lookups
-- Supports multi-turn conversation within a session (up to 8 turns)
-- AI-assisted receipt scanning — upload a receipt image and the assistant extracts merchant, amount, date, and category for your review
-- AI-assisted savings goal creation — describe a goal in plain text, the assistant parses name, target amount, and target date
-- **All AI interaction is opt-in** — disabled by default, enabled in Settings
-- **AI never directly saves financial records** — parsed transactions and goals are shown for user confirmation before being written to Firestore
+> “What did I spend this month?” · “Where am I spending the most?” · “How is my spending trending?”
 
----
+The assistant calls controlled backend tools for deterministic spending, budget, trend, and recent-transaction summaries, then explains the results in plain language. The AI feature is opt-in in Settings.
 
-## AI Architecture
+### Receipt Scanning
 
-All AI requests are routed through the Render backend. The Gemini API key never reaches the browser.
+Upload a receipt or UPI screenshot to prepare a transaction draft. Review and edit the extracted type, amount, date, merchant, category, and payment method before saving.
 
-```
-Browser
-  │
-  ├─ Firebase Authentication (Google / Email)
-  │     └─ Firebase ID Token
-  │
-  └─ POST /api/ai/* (Render backend)
-        │
-        ├─ Firebase Admin SDK — verifies ID token, derives UID
-        │
-        ├─ AI opt-in check (Firestore user preference)
-        │
-        ├─ Server-side rate limiter (per-user, in-memory)
-        │
-        ├─ Firestore — reads user's financial data
-        │
-        ├─ Gemini API (gemini-3.8-flash) — structured JSON output
-        │
-        └─ Validated response → Frontend
-```
+### Savings Goals
 
-**Security model:**
+Describe a goal in text to prepare a draft name, target amount, and date. Review and edit the draft before confirming it. Saved goals show progress and a monthly target calculated from the confirmed numbers.
 
-- Gemini API credentials are stored as Render environment secrets — never committed, never sent to the client
-- Every AI endpoint requires a valid Firebase ID token (`Authorization: Bearer <token>`)
-- The backend derives the authenticated user's UID from the verified token — no client-supplied UID is trusted
-- AI is disabled by default per user account; users enable it explicitly in Settings
-- AI output is validated against a strict JSON schema before being returned
-- AI does not mutate financial data — parsed results require explicit user confirmation before saving
+### Statement Import
 
----
+Read CSV or text-based PDF statements in the browser. Review, edit, or remove parsed rows before confirming their import as transactions. The statement feature reads files locally in the browser.
 
-## Tech Stack
+## AI, Without Giving AI Control of Your Money
 
-| Layer | Technology | Version |
-|---|---|---|
-| Frontend framework | React | 19 |
-| Language | TypeScript | 6 |
-| Build tool | Vite | 8 |
-| Routing | React Router | 7 |
-| Charts | Recharts | 3 |
-| Animation | Framer Motion | 13 |
-| Icons | Lucide React | latest |
-| PDF parsing | PDF.js (pdfjs-dist) | 6 |
-| Backend runtime | Node.js | 20 |
-| Backend framework | Express | 4 |
-| Authentication | Firebase Authentication | — |
-| Database | Cloud Firestore | — |
-| Admin SDK | Firebase Admin | 13 |
-| AI model | Gemini (REST API) | gemini-3.8-flash |
-| Deployment | Render | — |
+Gemini requests go through the Node/Express backend. The Gemini API key stays in server-side configuration; the frontend calls the API with the signed-in user's Firebase ID token.
 
----
+- Backend middleware verifies Firebase ID tokens and derives the user ID from the verified token.
+- AI endpoints require the user's AI preference to be enabled.
+- A Firestore-backed shared limit allows up to 20 AI requests per user per hour.
+- Ask Your Money uses a fixed set of backend tools. They query the authenticated user's records and return bounded summaries or a limited set of recent entries.
+- AI returns explanations and drafts. Transactions and savings goals require user review and confirmation before they are written to Firestore.
+- Dashboard summaries and forecasts use deterministic application calculations; model output is not the source of truth for financial totals.
+- Prompts and receipt images are sent to Gemini for the requested operation. Avoid submitting information you do not want processed by that service.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-    U([User]) --> F["React + Vite\nFrontend"]
-    F --> Auth["Firebase\nAuthentication"]
-    Auth -- ID Token --> F
-    F -- "Bearer Token" --> API["Render\nExpress API"]
-    API --> Admin["Firebase\nAdmin SDK"]
-    Admin -- verify --> FS[("Cloud\nFirestore")]
-    FS -- user data --> API
-    API --> G["Gemini\ngemini-3.8-flash"]
-    G -- structured JSON --> API
-    API -- response --> F
+flowchart TD
+    U[User] -->|sign in| AUTH[Firebase Authentication]
+    AUTH -->|ID token| B[React + Vite browser app]
+    B -->|scoped reads and writes| FS[Cloud Firestore]
+    B -->|Bearer ID token| API[Node + Express API on Render]
+    API -->|verify ID token| AUTH
+    API -->|Firebase Admin, UID-scoped queries| FS
+    API -->|bounded prompts and tool calls| G[Gemini API]
+    API -->|answers and editable drafts| B
+    B -->|static SPA| STATIC[Render Static Site]
 ```
 
----
+Firestore data is stored under `users/{uid}` and that user's subcollections. The checked-in Firestore rules restrict client access to the matching authenticated user. The backend uses Firebase Admin to verify identity and read the same user-scoped records. `firebase.json` also retains Firebase Hosting and Functions configuration, while the current Render deployment is defined in `render.yaml`.
+
+## Built With
+
+| Area | Technologies |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, React Router, vanilla CSS, Recharts, Framer Motion, Lucide React |
+| Backend | Node.js 20, Express 4, TypeScript |
+| Data & auth | Firebase Authentication, Cloud Firestore, Firebase Admin SDK |
+| AI | Gemini API, server-side orchestration and financial query tools |
+| Statement parsing | Browser-side CSV parsing and PDF.js |
+| Deployment | Render Static Site and Render Web Service |
+
+## Engineering Principles
+
+- Keep financial summaries and forecasts deterministic.
+- Keep Gemini and Firebase Admin credentials on the server.
+- Scope backend data access to the verified user's UID and enforce user-scoped Firestore rules.
+- Require user review before AI-prepared financial records or goal drafts are saved.
+- Bound AI inputs, tool outputs, and per-user request volume.
+- Return controlled errors when Firebase or AI requests fail.
+- Build responsive interfaces with accessible controls and respect reduced-motion preferences where motion is used.
+
+## Project Structure
+
+```text
+Smart-Expense-Tracker/
+├── app/                    # React + Vite application
+│   └── src/
+│       ├── components/     # Dashboard, chat, import, goal, and transaction UI
+│       ├── context/        # Auth, profile, transaction, budget, and AI preferences
+│       ├── firebase/       # Firebase clients and API client
+│       ├── pages/          # Dashboard, ledger, budgets, prediction, and account screens
+│       └── utils/          # Financial calculations and formatting
+├── server/                 # Express API deployed to Render
+│   └── src/
+│       ├── ai/             # Gemini orchestration, data tools, validation, and rate limiting
+│       └── routes/         # Authenticated AI endpoints
+├── functions/              # Firebase Functions configuration retained in repository
+├── render.yaml             # Render frontend and API services
+├── firebase.json           # Firebase Hosting and Functions configuration
+├── firestore.rules         # User-scoped Firestore access rules
+└── README.md
+```
 
 ## Local Development
 
-### Prerequisites
+### Requirements
 
-- Node.js 20+
-- A Firebase project with Authentication and Firestore enabled
-- A Gemini API key
+- Node.js 20 or newer
+- npm
+- Firebase project configuration for Authentication and Firestore
 
-### 1. Clone
+### Frontend
 
 ```bash
 git clone https://github.com/tanmayyyyayyy/Smart-Expense-Tracker.git
 cd Smart-Expense-Tracker
+npm --prefix app ci
+cp app/.env.example app/.env
+npm --prefix app run dev
 ```
 
-### 2. Backend
+Set the `VITE_FIREBASE_*` values and `VITE_API_BASE_URL` in `app/.env` using your Firebase web app configuration and local API URL (for example, `http://localhost:5001`). These configure the browser application; do not put Gemini or Firebase Admin credentials there.
+
+### Backend
 
 ```bash
-cd server
-cp .env.example .env          # fill in GEMINI_API_KEY and FIREBASE_SERVICE_ACCOUNT_JSON
-npm install
-npm run dev                   # http://localhost:5001
+npm --prefix server ci
+cp server/.env.example server/.env
+npm --prefix server run dev
 ```
 
-### 3. Frontend
-
-```bash
-cd app
-cp .env.example .env          # fill in VITE_FIREBASE_* and VITE_API_BASE_URL
-npm install
-npm run dev                   # http://localhost:5173
-```
-
-See [`server/.env.example`](server/.env.example) and [`render.yaml`](render.yaml) for the full list of required variables. Never commit `.env` files or service account JSON.
-
----
-
-## API Reference
-
-All AI endpoints require a valid Firebase ID token in the `Authorization: Bearer <token>` header.
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Liveness check — no auth required |
-| `POST` | `/api/ai/parse-transaction` | Parse natural-language transaction text |
-| `POST` | `/api/ai/scan-receipt` | Extract transaction data from a receipt image |
-| `POST` | `/api/ai/parse-goal` | Parse a savings goal from plain text |
-| `POST` | `/api/ai/weekly-insight` | Generate a weekly spending insight summary |
-| `POST` | `/api/ai/ask` | Conversational financial assistant (Ask Your Money) |
-
----
-
-## Project Structure
-
-```
-Smart-Expense-Tracker/
-├── app/                          # React/Vite frontend (static site)
-│   └── src/
-│       ├── pages/                # Route-level page components
-│       │   ├── Dashboard.tsx
-│       │   ├── Budgets.tsx
-│       │   ├── Ledger.tsx
-│       │   ├── Prediction.tsx
-│       │   ├── Settings.tsx
-│       │   ├── AddExpense.tsx
-│       │   ├── Onboarding.tsx
-│       │   ├── Landing.tsx
-│       │   ├── Login.tsx
-│       │   └── Signup.tsx
-│       ├── components/           # Shared UI components
-│       │   ├── AskYourMoney.tsx
-│       │   ├── QuickAddModal.tsx
-│       │   ├── CommandPalette.tsx
-│       │   ├── StatementImport.tsx
-│       │   ├── GoalPlanner.tsx
-│       │   ├── SpendingChart.tsx
-│       │   ├── CategoryBreakdown.tsx
-│       │   ├── MetricCard.tsx
-│       │   └── Navbar.tsx
-│       ├── context/              # React context providers
-│       ├── firebase/             # Firebase SDK initialization
-│       └── utils/                # Utility functions
-├── server/                       # Node/Express backend (Render web service)
-│   └── src/
-│       ├── ai/
-│       │   ├── gemini.ts         # Gemini REST client
-│       │   ├── features.ts       # AI feature handlers
-│       │   ├── financialTools.ts # Firestore data tools for the AI assistant
-│       │   ├── schemas.ts        # JSON output schemas and validators
-│       │   ├── security.ts       # Auth + AI opt-in + rate limit middleware
-│       │   └── rateLimit.ts      # Per-user in-memory rate limiter
-│       ├── routes/
-│       │   └── ai.ts             # Express router for /api/ai/*
-│       ├── firebase.ts           # Firebase Admin initialization
-│       └── index.ts              # Express app entry point
-├── render.yaml                   # Render infrastructure definition
-├── firestore.rules               # Firestore security rules
-└── firebase.json                 # Firebase project config
-```
-
----
+Set `GEMINI_API_KEY`, `FIREBASE_PROJECT_ID`, and Firebase Admin credentials in `server/.env`. The example supports a service-account JSON value or individual client-email/private-key variables. Keep real credentials out of Git. The API defaults to `http://localhost:5001`; `npm --prefix server run build` creates the production build and `npm --prefix server start` runs it.
 
 ## Deployment
 
-The project deploys automatically to Render on every push to `main`.
+`render.yaml` defines two services:
 
-- **Frontend** — built as a static site (`npm run build` in `app/`), served with SPA fallback rewrites so all routes resolve to `index.html`
-- **Backend** — TypeScript compiled to `dist/` (`npm run build` in `server/`), started with `node dist/index.js`
+- **Frontend:** Render Static Site, rooted at `app`, built with `npm install && npm run build`, published from `dist`, with SPA route fallback.
+- **Backend:** Render Web Service, rooted at `server`, built with `npm install && npm run build` and started with `npm start`.
 
-Environment secrets (Gemini API key, Firebase service account) are configured as Render secret environment variables and are never committed to the repository.
+Configure `GEMINI_API_KEY` and Firebase Admin credentials as Render secrets. The frontend receives its Firebase web configuration and API base URL as build-time environment variables. Firebase Authentication and Firestore remain the identity and data services.
 
----
+## Security
 
-## Firestore Security
+- Firebase Authentication protects signed-in app features; the backend verifies Firebase ID tokens before AI routes run.
+- Firestore rules scope client reads and writes to the matching authenticated UID.
+- Gemini and Firebase Admin credentials are configured server-side and must not be committed.
+- AI endpoints require opt-in and use a shared per-user rate limit.
+- Financial tools query only the verified user's records and return bounded results.
+- AI-extracted transactions and goals remain drafts until the user reviews and confirms them.
+- Statement files are parsed in the browser and are not uploaded by the statement-import feature.
 
-User data is scoped per authenticated user under `users/{uid}/`. Firestore security rules enforce that users can only read and write their own documents. The backend reads Firestore via Firebase Admin SDK — access is still gated by the server's own authentication and authorization layer before any Firestore query is made.
+## Roadmap
 
----
+Future ideas, not claims about current functionality:
 
-## Contributing
+- Broader trend comparisons and more useful spending explanations.
+- More flexible forecasting scenarios.
+- Support for additional statement formats and improved import mapping.
+- Richer progress views for savings goals.
+- Clearer context in AI-generated explanations.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Disclaimer
 
----
+Financial Observatory is a personal finance tracking and visualization tool. AI-generated responses are informational and should not be treated as professional financial advice.
 
-*Financial Observatory is a personal finance tool. It does not constitute financial advice.*
+## Built to make money easier to understand.
+
+Financial Observatory turns everyday financial activity into a picture you can reason about.
+
+[GitHub](https://github.com/tanmayyyyayyy/Smart-Expense-Tracker) &nbsp;•&nbsp; [Live Demo](https://smart-expense-tracker-1-2lsb.onrender.com)
