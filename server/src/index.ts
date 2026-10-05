@@ -1,9 +1,12 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { aiRouter } from "./routes/ai";
 
+// Load env vars FIRST — before any module that reads process.env at import time
+// (firebase.ts calls initFirebaseAdmin() during module initialisation).
 dotenv.config();
+
+import { aiRouter } from "./routes/ai";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -35,9 +38,9 @@ app.use(
 // Payload limit for receipt uploads (image data)
 app.use(express.json({ limit: "5mb" }));
 
-// Health check endpoint (Required by Render)
+// Health check endpoint — must be registered before the 404 catch-all.
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.status(200).json({ ok: true, service: "financial-observatory-api" });
 });
 
 // Mount AI routes

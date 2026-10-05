@@ -78,7 +78,7 @@ function initFirebaseAdmin(): App {
     if (!looksLikePem) {
       console.error(
         "FIREBASE_PRIVATE_KEY does not look like a valid PEM block after normalisation. " +
-          "Ensure the Render secret value is the raw private key string from the service-account JSON."
+        "Ensure the Render secret value is the raw private key string from the service-account JSON."
       );
     }
 
