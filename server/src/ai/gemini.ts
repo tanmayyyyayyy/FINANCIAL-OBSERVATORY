@@ -48,6 +48,12 @@ export async function generateJson<T>({ prompt, schema, image, tools }: Generate
   }
 
   if (!response.ok) {
+    try {
+      const errBody = await response.json();
+      console.error("[GEMINI] generateJson error", response.status, JSON.stringify(errBody).slice(0, 400));
+    } catch {
+      console.error("[GEMINI] generateJson error", response.status, "(no body)");
+    }
     throw new Error("AI_UNAVAILABLE");
   }
 
@@ -89,7 +95,15 @@ export async function generateJsonWithTools<T>(options: {
     } catch {
       throw new Error("AI_UNAVAILABLE");
     }
-    if (!response.ok) throw new Error("AI_UNAVAILABLE");
+    if (!response.ok) {
+      try {
+        const errBody = await response.json();
+        console.error("[GEMINI] generateJsonWithTools error", response.status, JSON.stringify(errBody).slice(0, 400));
+      } catch {
+        console.error("[GEMINI] generateJsonWithTools error", response.status, "(no body)");
+      }
+      throw new Error("AI_UNAVAILABLE");
+    }
 
     let candidate: { content?: { role?: "user" | "model"; parts?: Array<Record<string, unknown>> } } | undefined;
     try {
