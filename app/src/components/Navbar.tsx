@@ -13,18 +13,21 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { ObservatoryMark } from "./ObservatoryMark";
 import { UserAvatar } from "./UserAvatar";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface NavbarProps {
   onOpenQuickAdd?: () => void;
   onOpenCommandPalette?: () => void;
+  onAskYourMoney?: () => void;
 }
 
-export function Navbar({ onOpenQuickAdd, onOpenCommandPalette }: NavbarProps) {
+export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }: NavbarProps) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const [timeString, setTimeString] = useState<string>("");
   const [scrolled, setScrolled] = useState(false);
   const commandShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     function updateClock() {
@@ -92,6 +95,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette }: NavbarProps) {
                   className={`nav-link ${isActive ? "active" : ""}`}
                   aria-current={isActive ? "page" : undefined}
                 >
+                  {isActive && <motion.span className="nav-active-pill" layoutId="nav-active-pill" transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }} />}
                   {item.label}
                 </Link>
               );
@@ -100,6 +104,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette }: NavbarProps) {
 
           <div className="navbar-actions">
             {onOpenCommandPalette && <button type="button" className="navbar-search-trigger" onClick={onOpenCommandPalette} aria-label="Open quick navigation" aria-keyshortcuts="Meta+K Control+K"><span>Search</span><kbd>{commandShortcut}</kbd></button>}
+            {onAskYourMoney && <button type="button" className="button button-ghost navbar-ask-trigger" onClick={onAskYourMoney}>Ask your money</button>}
             {user && <Link to="/settings" className="navbar-account" aria-label="Account settings">
               <UserAvatar user={user} />
               <span>{user.displayName || user.email}</span>
@@ -164,6 +169,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette }: NavbarProps) {
                 aria-current={isActive ? "page" : undefined}
                 aria-label={item.label === "Add" ? "Add money in or out" : item.label}
               >
+                {isActive && <motion.span className="nav-active-pill mobile" layoutId="nav-active-pill" transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }} />}
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} />
                 <span>{item.label}</span>
               </Link>

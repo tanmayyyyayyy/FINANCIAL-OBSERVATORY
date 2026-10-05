@@ -10,6 +10,7 @@ export interface Transaction {
   date: string;      // ISO date, e.g. "2026-08-12"
   createdAt: string; // ISO timestamp
   type?: TransactionType;
+  isSampleData?: boolean;
 }
 
 export interface Budget {

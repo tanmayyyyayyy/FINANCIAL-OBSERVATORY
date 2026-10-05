@@ -6,6 +6,7 @@ import { EmptyState } from "../components/EmptyState";
 import { isIncomeTransaction } from "../utils/analytics";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { containDialogFocus } from "../utils/dialogFocus";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export function Ledger() {
   const { openQuickAdd } = useOutletContext<{ openQuickAdd: () => void }>();
@@ -16,6 +17,7 @@ export function Ledger() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest">("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterSheetRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -208,7 +210,7 @@ export function Ledger() {
                 onChange={(e) => setSelectedMethod(e.target.value)}
                 style={{ width: "auto", padding: "6px 10px", fontSize: "12.5px" }}
               >
-                <option value="ALL">All Rails</option>
+                <option value="ALL">All payment methods</option>
                 {paymentMethods.map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -235,9 +237,9 @@ export function Ledger() {
           {/* Terminal Table Chassis */}
           {filteredTransactions.length === 0 ? (
             <EmptyState
-              title="No Reconciled Movements Found"
+              title="No transactions found"
               description="No transaction records match the specified filters or search query."
-              actionText="Log New Movement"
+              actionText="Add transaction"
               onAction={openQuickAdd}
             />
           ) : (
@@ -249,14 +251,15 @@ export function Ledger() {
                     <th>Merchant / Description</th>
                     <th>Category</th>
                     <th>Date</th>
-                    <th>Settlement Rail</th>
+                    <th>Payment method</th>
                     <th style={{ textAlign: "right" }}>Amount</th>
                     <th style={{ textAlign: "right", width: "36px" }}></th>
                   </tr>
                 </thead>
                 <tbody>
+                  <AnimatePresence initial={false}>
                   {filteredTransactions.map((tx) => (
-                    <tr key={tx.id}>
+                    <motion.tr key={tx.id} layout initial={reduceMotion ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, scaleY: 0 }} transition={{ duration: reduceMotion ? 0 : 0.18 }} style={{ transformOrigin: "top" }}>
                       <td style={{ fontWeight: 500, color: "#ffffff" }}>
                         {tx.description || tx.category}
                       </td>
@@ -279,24 +282,26 @@ export function Ledger() {
                           type="button"
                           className="button-icon"
                           style={{ width: "26px", height: "26px" }}
-                          title="Purge transaction"
+                          title="Delete transaction"
                           onClick={() => {
                             if (confirm("Delete this transaction entry from the ledger?")) {
-                              deleteTransaction(tx.id);
+                              void deleteTransaction(tx.id).catch(() => undefined);
                             }
                           }}
                         >
                           <Trash2 size={12} color="rgba(244, 63, 94, 0.65)" />
                         </button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
             <div className="mobile-transaction-list">
+              <AnimatePresence initial={false}>
               {filteredTransactions.map((tx) => (
-                <article className="mobile-transaction-card" key={tx.id}>
+                <motion.article layout initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, height: 0, margin: 0, paddingBlock: 0 }} transition={{ duration: reduceMotion ? 0 : 0.2 }} className="mobile-transaction-card" key={tx.id}>
                   <span className="transaction-category-icon" aria-hidden="true"><Receipt size={17} /></span>
                   <div className="mobile-transaction-copy">
                     <strong>{tx.category}</strong>
@@ -308,11 +313,12 @@ export function Ledger() {
                     className="button-icon mobile-transaction-delete"
                     aria-label={`Delete ${tx.description || tx.category}`}
                     onClick={() => {
-                      if (confirm("Delete this transaction entry from the ledger?")) deleteTransaction(tx.id);
+                      if (confirm("Delete this transaction entry from the ledger?")) void deleteTransaction(tx.id).catch(() => undefined);
                     }}
                   ><Trash2 size={15} /></button>
-                </article>
+                </motion.article>
               ))}
+              </AnimatePresence>
             </div>
             </>
           )}

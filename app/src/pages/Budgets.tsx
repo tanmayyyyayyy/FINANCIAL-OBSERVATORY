@@ -1,21 +1,26 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Edit2, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useBudgets } from "../context/BudgetsContext";
 import { useTransactions } from "../context/TransactionsContext";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
 import { formatCurrency } from "../utils/formatters";
 import { computeFinancialSummary } from "../utils/analytics";
+import { EmptyState } from "../components/EmptyState";
 
 export function Budgets() {
+  const navigate = useNavigate();
   const { openQuickAdd } = useOutletContext<{ openQuickAdd: () => void }>();
   const { budgets, setBudgetLimit } = useBudgets();
   const { transactions } = useTransactions();
+  const { profile } = useFinancialProfile();
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newLimitValue, setNewLimitValue] = useState<string>("");
 
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets);
-  }, [transactions, budgets]);
+    return computeFinancialSummary(transactions, budgets, profile.monthlyIncome, profile.monthlyBudget);
+  }, [transactions, budgets, profile.monthlyIncome, profile.monthlyBudget]);
 
   function handleSaveLimit(category: string) {
     const parsed = parseFloat(newLimitValue);
@@ -91,7 +96,7 @@ export function Budgets() {
                 onClick={openQuickAdd}
               >
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Log Movement</span>
+                <span>Add transaction</span>
               </button>
             </div>
           </div>
@@ -195,7 +200,7 @@ export function Budgets() {
               </span>
             </div>
 
-            <div
+            {budgets.length === 0 ? <EmptyState title="No category limits yet" description="Set a category limit to see how your spending compares with your plan." actionText="Set budget" onAction={() => navigate("/onboarding")} icon={<AlertTriangle size={22} />} /> : <div
               className="budget-instruments-grid"
               style={{
                 display: "grid",
@@ -281,7 +286,7 @@ export function Budgets() {
                   </div>
                 );
               })}
-            </div>
+            </div>}
           </section>
 
           {/* Budget Intelligence Alerts */}

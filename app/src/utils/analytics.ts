@@ -116,7 +116,7 @@ export function calculateFinancialSummary(transactions: Transaction[]): Financia
   };
 }
 
-export function calculateForecast(transactions: Transaction[], now = new Date()): ForecastResult {
+export function calculateForecast(transactions: Transaction[], now = new Date(), monthlyIncomeFallback = 0): ForecastResult {
   const valid = validTransactions(transactions);
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
@@ -142,11 +142,12 @@ export function calculateForecast(transactions: Transaction[], now = new Date())
     ? historicSpends.reduce((sum, amount) => sum + amount, 0) / historicSpends.length
     : null;
   const projectedSpend = historicAverage === null ? currentRunRate : (historicAverage + currentRunRate) / 2;
-  const currentIncome = valid.filter((transaction) => {
+  const currentIncomeTransactions = valid.filter((transaction) => {
     const date = parsedDate(transaction.date)!;
     return isIncomeTransaction(transaction) && `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` === thisMonthKey;
-  }).reduce((sum, transaction) => sum + transaction.amount, 0);
-  const projectedIncome = currentIncome > 0 ? currentIncome : calculateFinancialSummary(valid).income;
+  });
+  const currentIncome = currentIncomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const projectedIncome = monthlyIncomeFallback + currentIncome;
 
   return {
     currentRunRate,
@@ -160,6 +161,7 @@ export function calculateMonthlySummary(
   transactions: Transaction[],
   budgets: Budget[],
   month = currentMonthKey(),
+  monthlyIncomeFallback = 0,
 ): MonthlySummaryResult {
   const [yearText, monthText] = month.split("-");
   const year = Number(yearText);
@@ -168,7 +170,9 @@ export function calculateMonthlySummary(
     const date = parsedDate(transaction.date)!;
     return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === monthNumber;
   });
-  const income = inMonth.filter(isIncomeTransaction).reduce((sum, transaction) => sum + transaction.amount, 0);
+  const monthIncomeTransactions = inMonth.filter(isIncomeTransaction);
+  const monthIncome = monthIncomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const income = monthlyIncomeFallback + monthIncome;
   const expenses = inMonth.filter((transaction) => isExpenseTransaction(transaction));
   const totalExpenses = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
   const categoryTotals = new Map<string, number>();
@@ -227,10 +231,11 @@ export function calculatePeriodComparison(transactions: Transaction[], now = new
   };
 }
 
-export function computeFinancialSummary(transactions: Transaction[], budgets: Budget[]): FinancialSummary {
-  const monthly = calculateMonthlySummary(transactions, budgets);
-  const forecast = calculateForecast(transactions);
-  const totalBudget = budgets.reduce((sum, budget) => sum + (Number.isFinite(budget.limit) ? budget.limit : 0), 0);
+export function computeFinancialSummary(transactions: Transaction[], budgets: Budget[], monthlyIncomeFallback = 0, monthlyBudgetFallback = 0): FinancialSummary {
+  const monthly = calculateMonthlySummary(transactions, budgets, currentMonthKey(), monthlyIncomeFallback);
+  const forecast = calculateForecast(transactions, new Date(), monthlyIncomeFallback);
+  const categoryBudgetTotal = budgets.reduce((sum, budget) => sum + (Number.isFinite(budget.limit) ? budget.limit : 0), 0);
+  const totalBudget = categoryBudgetTotal > 0 ? categoryBudgetTotal : monthlyBudgetFallback;
   const categorySpends: CategorySpend[] = monthly.budgetPerformance.map((item) => ({
     category: item.category,
     spent: item.spent,

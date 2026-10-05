@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TransactionsProvider, useTransactions } from "./context/TransactionsContext";
 import { BudgetsProvider, useBudgets } from "./context/BudgetsContext";
+import { FinancialProfileProvider, useFinancialProfile } from "./context/FinancialProfileContext";
+import { AiPreferencesProvider } from "./context/AiPreferencesContext";
 
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
@@ -19,6 +22,7 @@ import { TransactionSuccess } from "./pages/TransactionSuccess";
 import { Navbar } from "./components/Navbar";
 import { QuickAddModal } from "./components/QuickAddModal";
 import { CommandPalette } from "./components/CommandPalette";
+import { AskYourMoney } from "./components/AskYourMoney";
 import type { TransactionType } from "./types";
 
 import "./index.css";
@@ -44,9 +48,12 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function ObservatoryLayout() {
+  const location = useLocation();
+  const reduceMotion = useReducedMotion();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<TransactionType>("expense");
   const [commandOpen, setCommandOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const openQuickAdd = (type: TransactionType = "expense") => {
     setQuickAddType(type);
     setQuickAddOpen(true);
@@ -64,10 +71,15 @@ function ObservatoryLayout() {
   return (
     <div className="observatory-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <Navbar onOpenQuickAdd={() => openQuickAdd()} onOpenCommandPalette={() => setCommandOpen(true)} />
-      <Outlet context={{ openQuickAdd }} />
+      <Navbar onOpenQuickAdd={() => openQuickAdd()} onOpenCommandPalette={() => setCommandOpen(true)} onAskYourMoney={() => setAskOpen(true)} />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={location.pathname} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, y: -4 }} transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}>
+          <Outlet context={{ openQuickAdd, openAskYourMoney: () => setAskOpen(true) }} />
+        </motion.div>
+      </AnimatePresence>
       <QuickAddModal isOpen={quickAddOpen} initialType={quickAddType} onClose={() => setQuickAddOpen(false)} />
-      {commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onQuickAdd={() => setQuickAddOpen(true)} />}
+      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} onQuickAdd={() => { setCommandOpen(false); openQuickAdd(); }} onAskYourMoney={() => { setCommandOpen(false); setAskOpen(true); }} />
+      <AskYourMoney open={askOpen} onClose={() => setAskOpen(false)} />
     </div>
   );
 }
@@ -76,16 +88,18 @@ function FirebaseErrorNotices() {
   const { error: authError, clearError: clearAuthError } = useAuth();
   const { error: transactionError, clearError: clearTransactionError } = useTransactions();
   const { error: budgetError, clearError: clearBudgetError } = useBudgets();
+  const { error: profileError, clearError: clearProfileError } = useFinancialProfile();
   const notices = [
     { message: authError, clear: clearAuthError },
     { message: transactionError, clear: clearTransactionError },
     { message: budgetError, clear: clearBudgetError },
+    { message: profileError, clear: clearProfileError },
   ].filter((notice): notice is { message: string; clear: () => void } => Boolean(notice.message));
 
   useEffect(() => {
     const timers = notices.map(({ clear }) => window.setTimeout(clear, 7000));
     return () => timers.forEach(window.clearTimeout);
-  }, [authError, transactionError, budgetError]);
+  }, [authError, transactionError, budgetError, profileError]);
 
   if (!notices.length) return null;
 
@@ -132,9 +146,11 @@ function FirebaseErrorNotices() {
 export default function App() {
   return (
     <AuthProvider>
-      <TransactionsProvider>
-        <BudgetsProvider>
-          <BrowserRouter>
+      <FinancialProfileProvider>
+        <AiPreferencesProvider>
+          <TransactionsProvider>
+            <BudgetsProvider>
+              <BrowserRouter>
             <FirebaseErrorNotices />
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -152,9 +168,11 @@ export default function App() {
               <Route path="/transaction-success" element={<ProtectedRoute><TransactionSuccess /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </BrowserRouter>
-        </BudgetsProvider>
-      </TransactionsProvider>
+              </BrowserRouter>
+            </BudgetsProvider>
+          </TransactionsProvider>
+        </AiPreferencesProvider>
+      </FinancialProfileProvider>
     </AuthProvider>
   );
 }

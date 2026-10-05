@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, CheckCircle2, Shield, Layers, Target } from "lucide-react";
 import { ObservatoryMark } from "../components/ObservatoryMark";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export function Onboarding() {
   const navigate = useNavigate();
+  const { saveOnboardingFinancials } = useFinancialProfile();
   const [step, setStep] = useState(1);
   const [income, setIncome] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([
@@ -15,6 +18,13 @@ export function Onboarding() {
     "Shopping",
   ]);
   const [budgetLimit, setBudgetLimit] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [stepDirection, setStepDirection] = useState(1);
+  const reduceMotion = useReducedMotion();
+  const [saveError, setSaveError] = useState("");
+  const [incomeError, setIncomeError] = useState("");
+  const [budgetError, setBudgetError] = useState("");
 
   const categoriesAvailable = [
     "Food & Dining",
@@ -27,6 +37,11 @@ export function Onboarding() {
     "Education",
   ];
 
+  function goToStep(next: number) {
+    setStepDirection(next > step ? 1 : -1);
+    setStep(next);
+  }
+
   function toggleCategory(cat: string) {
     if (selectedCategories.includes(cat)) {
       setSelectedCategories(selectedCategories.filter((c) => c !== cat));
@@ -35,8 +50,30 @@ export function Onboarding() {
     }
   }
 
-  function handleComplete() {
-    navigate("/dashboard");
+  async function handleComplete() {
+    const parsedIncome = Number(income);
+    const parsedBudget = Number(budgetLimit);
+    if (!Number.isFinite(parsedBudget) || parsedBudget <= 0) {
+      setBudgetError("Enter a monthly budget greater than zero.");
+      return;
+    }
+    if (parsedBudget > parsedIncome) {
+      setBudgetError("Your budget cannot be higher than your income.");
+      return;
+    }
+    setBudgetError("");
+    setSaving(true);
+    setSaveError("");
+    try {
+      await saveOnboardingFinancials(Number(income), Number(budgetLimit));
+      setCompleted(true);
+      await new Promise((resolve) => window.setTimeout(resolve, reduceMotion ? 0 : 420));
+      navigate("/dashboard");
+    } catch (cause) {
+      setSaveError(cause instanceof Error ? cause.message : "Unable to save your financial profile.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -73,7 +110,7 @@ export function Onboarding() {
           }}
         >
           <ArrowLeft size={13} />
-          <span>BACK TO ROOT</span>
+          <span>Back</span>
         </Link>
 
         {/* Progress tracker */}
@@ -94,7 +131,12 @@ export function Onboarding() {
             />
           ))}
         </div>
+        <p style={{ fontSize: "12px", color: "rgba(255,255,255,.52)", marginTop: "-20px", marginBottom: "24px" }}>
+          Step {step} of 3 · about 30 seconds
+        </p>
 
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={step} initial={reduceMotion ? false : { opacity: 0, x: stepDirection * 14 }} animate={{ opacity: 1, x: 0 }} exit={reduceMotion ? undefined : { opacity: 0, x: stepDirection * -10 }} transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}>
         {step === 1 && (
           <div>
             <div className="eyebrow">
@@ -128,7 +170,12 @@ export function Onboarding() {
                   id="onboarding-income"
                   type="number"
                   value={income}
-                  onChange={(e) => setIncome(e.target.value)}
+                  onChange={(e) => {
+                    const nextIncome = e.target.value;
+                    setIncome(nextIncome);
+                    setBudgetLimit(nextIncome && Number(nextIncome) > 0 ? String(Math.round(Number(nextIncome) * 0.8)) : "");
+                    setIncomeError("");
+                  }}
                   style={{
                     fontSize: "20px",
                     fontWeight: 600,
@@ -139,11 +186,19 @@ export function Onboarding() {
               </div>
             </div>
 
+            {incomeError && <p role="alert" style={{ color: "var(--accent-neg)", fontSize: "13px", marginBottom: "12px" }}>{incomeError}</p>}
             <button
               type="button"
               className="button button-primary"
               style={{ width: "100%", padding: "12px" }}
-              onClick={() => setStep(2)}
+              onClick={() => {
+                if (!Number.isFinite(Number(income)) || Number(income) <= 0) {
+                  setIncomeError("Enter a monthly income greater than zero.");
+                  return;
+                }
+                setIncomeError("");
+                goToStep(2);
+              }}
             >
               <span>Continue to Categories</span>
               <ArrowRight size={14} />
@@ -171,6 +226,7 @@ export function Onboarding() {
                   <button
                     key={cat}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleCategory(cat)}
                     style={{
                       padding: "8px 14px",
@@ -199,7 +255,7 @@ export function Onboarding() {
                 type="button"
                 className="button button-secondary"
                 style={{ flex: 1, padding: "12px" }}
-                onClick={() => setStep(1)}
+                onClick={() => goToStep(1)}
               >
                 Back
               </button>
@@ -207,7 +263,7 @@ export function Onboarding() {
                 type="button"
                 className="button button-primary"
                 style={{ flex: 2, padding: "12px" }}
-                onClick={() => setStep(3)}
+                onClick={() => goToStep(3)}
               >
                 <span>Confirm Tracks</span>
                 <ArrowRight size={14} />
@@ -249,7 +305,7 @@ export function Onboarding() {
                   id="onboarding-budget"
                   type="number"
                   value={budgetLimit}
-                  onChange={(e) => setBudgetLimit(e.target.value)}
+                  onChange={(e) => { setBudgetLimit(e.target.value); setBudgetError(""); }}
                   style={{
                     fontSize: "20px",
                     fontWeight: 600,
@@ -258,14 +314,19 @@ export function Onboarding() {
                   }}
                 />
               </div>
+              <p style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.5)", marginTop: "8px" }}>
+                Suggested budget: 80% of your income
+              </p>
             </div>
+
+            {(budgetError || saveError) && <p role="alert" style={{ color: "var(--accent-neg)", fontSize: "13px", marginBottom: "14px" }}>{budgetError || saveError}</p>}
 
             <div style={{ display: "flex", gap: "12px" }}>
               <button
                 type="button"
                 className="button button-secondary"
                 style={{ flex: 1, padding: "12px" }}
-                onClick={() => setStep(2)}
+                onClick={() => goToStep(2)}
               >
                 Back
               </button>
@@ -274,13 +335,21 @@ export function Onboarding() {
                 className="button button-primary"
                 style={{ flex: 2, padding: "12px" }}
                 onClick={handleComplete}
+                disabled={saving || completed}
               >
                 <CheckCircle2 size={15} />
-                <span>Finish setup</span>
+                <span>{completed ? "All set" : saving ? "Saving…" : "Finish setup"}</span>
               </button>
             </div>
           </div>
         )}
+
+        </motion.div>
+        </AnimatePresence>
+
+        <button type="button" className="button button-ghost" style={{ width: "100%", marginTop: "14px" }} onClick={() => navigate("/dashboard")}>
+          Skip for now
+        </button>
       </div>
     </div>
   );

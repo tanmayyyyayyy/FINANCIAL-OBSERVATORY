@@ -18,13 +18,17 @@ export function AddExpense() {
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("UPI");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleRecord(e: React.FormEvent) {
+  async function handleRecord(e: React.FormEvent) {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    addTransaction({
+    setSaving(true); setSaveError("");
+    try {
+    await addTransaction({
       type: movementType,
       amount: parsedAmount,
       category,
@@ -34,6 +38,8 @@ export function AddExpense() {
     });
 
     navigate("/transaction-success");
+    } catch (cause) { setSaveError(cause instanceof Error ? cause.message : "Unable to save this transaction."); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -95,6 +101,7 @@ export function AddExpense() {
           </button>)}
         </div>
         <form className="add-expense-form" onSubmit={handleRecord} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          {saveError && <p role="alert" className="signal-error">{saveError}</p>}
           <div>
             <label htmlFor="expense-amount">HOW MUCH? (INR)</label>
             <div style={{ position: "relative" }}>
@@ -184,9 +191,10 @@ export function AddExpense() {
           <button
             type="submit"
             className="button button-primary"
+            disabled={saving}
             style={{ width: "100%", padding: "12px", marginTop: "8px" }}
           >
-            <span>{movementType === "income" ? "Add Money In" : "Add Money Out"}</span>
+            <span>{saving ? "Saving…" : movementType === "income" ? "Add Money In" : "Add Money Out"}</span>
             <ArrowRight size={14} />
           </button>
         </form>

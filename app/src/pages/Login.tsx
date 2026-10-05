@@ -205,7 +205,7 @@ export function Login() {
               onMouseOut={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.38)")}
             >
               <ArrowLeft size={12} />
-              <span>BACK TO ROOT</span>
+              <span>Back to home</span>
             </Link>
           </div>
 

@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { User, Bell, Tag, Download, RefreshCw, Check } from "lucide-react";
+import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
 import { useAuth } from "../context/AuthContext";
+import { useAiPreferences } from "../context/AiPreferencesContext";
+import { StatementImport } from "../components/StatementImport";
+
+const AI_PRIVACY_EXPLANATION = "AI features can send the information needed for the feature you use, such as transaction text, merchant names, amounts, dates, budget summaries, or uploaded receipt images. Your request passes through a Firebase server function to the configured AI provider. Your browser never receives the AI provider's secret key. Provider data handling is governed by that provider's terms.";
 
 export function Settings() {
-  const { transactions } = useTransactions();
+  const { transactions, addTransaction } = useTransactions();
   const { budgets } = useBudgets();
   const { user, updateDisplayName } = useAuth();
+  const { enabled: aiEnabled, loading: aiPreferenceLoading, saving: aiPreferenceSaving, error: aiPreferenceError, setEnabled: setAiEnabled } = useAiPreferences();
 
   const [name, setName] = useState(user?.displayName || "");
   const email = user?.email || "";
@@ -22,9 +28,18 @@ export function Settings() {
   ]);
   const [newCategory, setNewCategory] = useState("");
   const [notifications, setNotifications] = useState(true);
-  const [weeklyInsights, setWeeklyInsights] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [aiActionError, setAiActionError] = useState("");
+
+  async function handleToggleAi() {
+    setAiActionError("");
+    try {
+      await setAiEnabled(!aiEnabled);
+    } catch (cause) {
+      setAiActionError(cause instanceof Error ? cause.message : "Unable to save your AI preference.");
+    }
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -72,7 +87,7 @@ export function Settings() {
   function handleResetSeed() {
     if (
       confirm(
-        "Clear older browser data? Transactions and budgets saved to your Firebase account will not be deleted."
+        "Clear saved data on this device? This removes only older transaction and budget data stored in this browser. Your Firebase account data will not be deleted."
       )
     ) {
       localStorage.removeItem("expense-tracker:transactions");
@@ -305,20 +320,65 @@ export function Settings() {
                     Weekly summary
                   </div>
                   <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)" }}>
-                    Review a summary of the money you recorded each week.
+                    See a weekly spending summary, budget reminders, and activity worth reviewing.
+                  </div>
+                </div>
+                <Link to="/dashboard" className="button button-secondary">View weekly check-in</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* AI privacy preference */}
+          <section
+            style={{
+              padding: "28px 0",
+              borderTop: "1px solid var(--border-subtle)",
+              display: "grid",
+              gridTemplateColumns: "240px 1fr",
+              gap: "32px",
+            }}
+            className="settings-section"
+          >
+            <div>
+              <div className="eyebrow">
+                <Sparkles size={12} />
+                <span>AI FEATURES</span>
+              </div>
+              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>AI features</h2>
+              <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
+                AI is off by default. Your choice is saved to your account.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px" }}>Allow AI features</div>
+                  <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)" }}>
+                    AI requests run only when this setting is on and you choose an AI feature.
                   </div>
                 </div>
                 <button
                   type="button"
-                  aria-pressed={weeklyInsights}
-                  aria-label={`Weekly summary ${weeklyInsights ? "on" : "off"}`}
-                  onClick={() => setWeeklyInsights(!weeklyInsights)}
-                  className={`button ${weeklyInsights ? "button-primary" : "button-secondary"}`}
-                  style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px" }}
+                  aria-pressed={aiEnabled}
+                  aria-label={`AI features ${aiEnabled ? "on" : "off"}`}
+                  disabled={aiPreferenceLoading || aiPreferenceSaving}
+                  onClick={handleToggleAi}
+                  className={`button ${aiEnabled ? "button-primary" : "button-secondary"}`}
+                  style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px", flexShrink: 0 }}
                 >
-                  {weeklyInsights ? "ON" : "OFF"}
+                  {aiPreferenceSaving ? "SAVING" : aiEnabled ? "ON" : "OFF"}
                 </button>
               </div>
+
+              {aiEnabled && <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "rgba(255, 255, 255, 0.62)", margin: 0 }}>
+                {AI_PRIVACY_EXPLANATION}
+              </p>}
+              <details style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.58)" }}>
+                <summary style={{ cursor: "pointer", width: "fit-content", color: "rgba(255, 255, 255, 0.78)" }}>Review AI data use</summary>
+                <p style={{ lineHeight: 1.65, marginTop: "8px" }}>{AI_PRIVACY_EXPLANATION}</p>
+              </details>
+              {(aiPreferenceError || aiActionError) && <div role="alert" style={{ color: "var(--accent-neg)", fontSize: "12px" }}>{aiActionError || aiPreferenceError}</div>}
             </div>
           </section>
 
@@ -346,6 +406,10 @@ export function Settings() {
             </div>
 
             <div>
+              <StatementImport onSave={async (draft) => {
+                if (!draft.type || draft.amount === "" || !draft.category || !draft.date || !draft.paymentMethod) throw new Error("Complete all transaction details before importing.");
+                await addTransaction({ type: draft.type, amount: draft.amount, category: draft.category, description: draft.description, paymentMethod: draft.paymentMethod, date: draft.date });
+              }} />
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                 <button
                   type="button"
@@ -364,7 +428,7 @@ export function Settings() {
                   style={{ fontSize: "12.5px" }}
                 >
                   <RefreshCw size={13} />
-                  <span>Clear Old Browser Data</span>
+                  <span>Clear saved data on this device</span>
                 </button>
               </div>
             </div>

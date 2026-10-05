@@ -12,13 +12,22 @@ import {
 import { TrendingUp, Sliders, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
 import { formatCurrency } from "../utils/formatters";
-import { calculateForecast, computeFinancialSummary } from "../utils/analytics";
+import { calculateForecast, computeFinancialSummary, isExpenseTransaction } from "../utils/analytics";
+import { useOutletContext } from "react-router-dom";
+import type { TransactionType } from "../types";
+import { EmptyState } from "../components/EmptyState";
+import { GoalPlanner } from "../components/GoalPlanner";
 
 export function Prediction() {
+  const { openQuickAdd } = useOutletContext<{ openQuickAdd: (type?: TransactionType) => void }>();
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
+  const { profile } = useFinancialProfile();
   const [scenarioDelta, setScenarioDelta] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [categoryReduction, setCategoryReduction] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -33,31 +42,45 @@ export function Prediction() {
 
   useEffect(() => { chartHasAnimated.current = true; }, []);
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets);
-  }, [transactions, budgets]);
-  const forecast = useMemo(() => calculateForecast(transactions), [transactions]);
+    return computeFinancialSummary(transactions, budgets, profile.monthlyIncome, profile.monthlyBudget);
+  }, [transactions, budgets, profile.monthlyIncome, profile.monthlyBudget]);
+  const forecast = useMemo(() => calculateForecast(transactions, new Date(), profile.monthlyIncome), [transactions, profile.monthlyIncome]);
+  const expenseCount = transactions.filter(isExpenseTransaction).length;
+  const scenarioCategories = summary.categorySpends.filter((item) => item.spent > 0);
+  const activeScenarioCategory = scenarioCategories.find((item) => item.category === selectedCategory) ?? scenarioCategories[0];
+  const currentMonthCategorySpend = transactions.filter((transaction) => isExpenseTransaction(transaction) && transaction.category === activeScenarioCategory?.category && transaction.date.startsWith(new Date().toISOString().slice(0, 7))).reduce((sum, transaction) => sum + transaction.amount, 0);
+  const projectedCategorySpend = currentMonthCategorySpend / Math.max(1, new Date().getUTCDate()) * new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 0)).getUTCDate();
 
   const simulatedProjectedSpend = useMemo(() => {
     const base = forecast.projectedSpend;
     const factor = 1 + scenarioDelta / 100;
-    return Math.round(base * factor);
-  }, [forecast.projectedSpend, scenarioDelta]);
+    return Math.max(0, Math.round(base * factor - projectedCategorySpend * categoryReduction / 100));
+  }, [forecast.projectedSpend, scenarioDelta, projectedCategorySpend, categoryReduction]);
 
   const simulatedSavings = useMemo(() => {
-    return Math.max(0, forecast.projectedSavings + forecast.projectedSpend - simulatedProjectedSpend);
+    return forecast.projectedSavings + forecast.projectedSpend - simulatedProjectedSpend;
   }, [forecast.projectedSavings, forecast.projectedSpend, simulatedProjectedSpend]);
 
   const projectionCurve = useMemo(() => {
     const points = [];
-    const daysInMonth = 30;
-    const currentDay = Math.min(14, daysInMonth);
+    const now = new Date();
+    const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+    const currentDay = Math.min(now.getUTCDate(), daysInMonth);
     const dailyBase = summary.spendingVelocity;
-    const scenarioDaily = dailyBase * (1 + scenarioDelta / 100);
+    const categoryDaily = currentMonthCategorySpend / Math.max(1, currentDay);
+    const scenarioDaily = Math.max(0, dailyBase * (1 + scenarioDelta / 100) - categoryDaily * categoryReduction / 100);
+    const dailyActual = new Map<string, number>();
+    transactions.forEach((transaction) => {
+      if (isExpenseTransaction(transaction) && transaction.date.startsWith(now.toISOString().slice(0, 7))) dailyActual.set(transaction.date, (dailyActual.get(transaction.date) ?? 0) + transaction.amount);
+    });
+    let cumulative = 0;
 
     for (let day = 1; day <= daysInMonth; day++) {
+      const date = `${now.toISOString().slice(0, 7)}-${String(day).padStart(2, "0")}`;
       const budgetLinear = Math.round((summary.totalBudget / daysInMonth) * day);
       if (day <= currentDay) {
-        const actual = Math.round(dailyBase * day);
+        cumulative += dailyActual.get(date) ?? 0;
+        const actual = Math.round(cumulative);
         points.push({
           day: `Day ${day}`,
           actual,
@@ -65,8 +88,7 @@ export function Prediction() {
           budgetCap: budgetLinear,
         });
       } else {
-        const actualAnchor = Math.round(dailyBase * currentDay);
-        const projected = Math.round(actualAnchor + scenarioDaily * (day - currentDay));
+        const projected = Math.round(cumulative + scenarioDaily * (day - currentDay));
         points.push({
           day: `Day ${day}`,
           actual: null,
@@ -76,7 +98,7 @@ export function Prediction() {
       }
     }
     return points;
-  }, [summary.spendingVelocity, summary.totalBudget, scenarioDelta]);
+  }, [transactions, summary.spendingVelocity, summary.totalBudget, scenarioDelta, categoryReduction, currentMonthCategorySpend]);
 
   return (
     <div className="page-wrapper">
@@ -101,7 +123,7 @@ export function Prediction() {
                 <span>YOUR SPENDING OUTLOOK</span>
               </div>
               <h1 style={{ fontSize: "clamp(2.0rem, 3.8vw, 2.9rem)", marginBottom: "4px" }}>
-                Where You're Heading.
+                Your plan
               </h1>
               <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.48)" }}>
                 See your spending pace and explore how small changes could shape the month.
@@ -148,7 +170,7 @@ export function Prediction() {
             </div>
 
             <div>
-              <div className="stat-label">ESTIMATED MONEY LEFT</div>
+              <div className="stat-label" title="What we expect you may have left at the end of the month.">ESTIMATED MONEY LEFT</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {formatCurrency(simulatedSavings)}
               </div>
@@ -163,23 +185,23 @@ export function Prediction() {
                 {(summary.totalBudget > 0 ? (simulatedProjectedSpend / summary.totalBudget) * 100 : 0).toFixed(1)}%
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                Envelope Cap: {formatCurrency(summary.totalBudget)}
+                  Daily limit: {formatCurrency(summary.totalBudget)}
               </div>
             </div>
 
             <div>
                 <div className="stat-label">ESTIMATE CONFIDENCE</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "var(--accent-pos)", marginTop: "6px", letterSpacing: "-0.03em" }}>
-                {forecast.confidence.toUpperCase()}
+                {forecast.confidence === "low" ? "Needs more data" : forecast.confidence === "medium" ? "Building" : "More history"}
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                Based on recorded completed-month history
+                {forecast.confidence === "low" ? "Add more spending for a better estimate" : "Based on your recorded spending history"}
               </div>
             </div>
           </div>
 
-          {/* Central Forecast Visualization Chassis (THE HERO ELEMENT) */}
-          <div
+          {/* Central forecast and scenario controls */}
+          {expenseCount < 3 ? <EmptyState title="Your plan needs a little more activity" description="Add 3 or more expenses to see your forecast" actionText="Add transaction" onAction={() => openQuickAdd("expense")} /> : <div
             style={{
               background: "rgba(255, 255, 255, 0.012)",
               border: "1px solid var(--border-subtle)",
@@ -201,7 +223,7 @@ export function Prediction() {
               <div>
                 <div className="eyebrow">YOUR SPENDING PACE</div>
                 <h2 style={{ fontSize: "1.45rem", marginTop: "2px" }}>
-                  Burn Trajectory vs Budget Ceiling
+                  Spending vs. your budget
                 </h2>
               </div>
 
@@ -209,20 +231,20 @@ export function Prediction() {
               <div style={{ display: "flex", gap: "16px", fontSize: "11.5px", fontFamily: "var(--font-mono)" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#ffffff" }}>
                   <span style={{ width: "12px", height: "2px", background: "#ffffff", display: "inline-block" }} />
-                  Actual Reconciled
+                  Actual spending
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "rgba(255, 255, 255, 0.5)" }}>
                   <span style={{ width: "12px", height: "2px", background: "rgba(255, 255, 255, 0.4)", display: "inline-block" }} />
-                  Projected Trajectory
+                  Estimate
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--accent-neg)" }}>
                   <span style={{ width: "12px", height: "2px", background: "var(--accent-neg)", display: "inline-block" }} />
-                  Envelope Cap
+                  Daily limit
                 </span>
               </div>
             </div>
 
-            <div style={{ width: "100%", height: 320 }}>
+              <div style={{ width: "100%", height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={projectionCurve} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.03)" vertical={false} />
@@ -263,7 +285,7 @@ export function Prediction() {
                     stroke="#ffffff"
                     strokeWidth={2.2}
                     dot={false}
-                    name="Actual Reconciled"
+                    name="Actual spending"
                     isAnimationActive={!prefersReducedMotion && !chartHasAnimated.current}
                   />
                   <Line
@@ -273,7 +295,7 @@ export function Prediction() {
                     strokeWidth={1.8}
                     strokeDasharray="4 4"
                     dot={false}
-                    name="Projected Trajectory"
+                    name="Estimate"
                     isAnimationActive={!prefersReducedMotion && !chartHasAnimated.current}
                   />
                 </LineChart>
@@ -316,13 +338,24 @@ export function Prediction() {
                 </span>
               </div>
 
+              {scenarioCategories.length > 0 && <div className="category-what-if">
+                <label htmlFor="scenario-category">Try reducing</label>
+                <select id="scenario-category" value={activeScenarioCategory?.category ?? ""} onChange={(event) => setSelectedCategory(event.target.value)}>{scenarioCategories.map((item) => <option key={item.category} value={item.category}>{item.category}</option>)}</select>
+                <label htmlFor="scenario-reduction">Monthly reduction: {categoryReduction}%</label>
+                <input id="scenario-reduction" type="range" min="0" max="50" step="5" value={categoryReduction} onChange={(event) => setCategoryReduction(Number(event.target.value))} aria-valuetext={`${categoryReduction}% less ${activeScenarioCategory?.category ?? "spending"}`} />
+                <p>That could change your month-end estimate by about {formatCurrency(projectedCategorySpend * categoryReduction / 100)}.</p>
+              </div>}
+
               <input
+                id="global-scenario-change"
                 type="range"
                 min="-20"
                 max="30"
                 step="5"
                 value={scenarioDelta}
                 onChange={(e) => setScenarioDelta(parseInt(e.target.value, 10))}
+                aria-label="Overall spending change scenario"
+                aria-valuetext={`${scenarioDelta}% overall spending change`}
               />
 
               <div
@@ -340,7 +373,7 @@ export function Prediction() {
                 <span>+30% (SPEND MORE)</span>
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Analytical Intelligence Cards */}
           <section>
@@ -397,6 +430,7 @@ export function Prediction() {
               </div>
             </div>
           </section>
+          <GoalPlanner />
         </div>
       </main>
 

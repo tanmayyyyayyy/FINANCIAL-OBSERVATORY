@@ -251,7 +251,7 @@ export function SpendingChart({ data, onLogExpense }: SpendingChartProps) {
           letterSpacing: "0.05em",
         }}
       >
-        <span>STATUS: {hasSpend ? "RECONCILED ACTIVITY" : "AWAITING ACTIVITY"}</span>
+        <span>{hasSpend ? "Recorded spending" : "No spending yet"}</span>
         <span>RESOLUTION: DAILY ACCRUAL</span>
       </div>
     </div>

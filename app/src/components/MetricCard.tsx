@@ -3,6 +3,7 @@ import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
 interface MetricCardProps {
   label: string;
+  title?: string;
   value: string;
   numericValue?: number;
   formatValue?: (value: number) => string;
@@ -17,6 +18,7 @@ interface MetricCardProps {
 
 export function MetricCard({
   label,
+  title,
   value,
   subtext,
   trend,
@@ -50,7 +52,7 @@ export function MetricCard({
   return (
     <div className="metric-column">
       <div className="metric-header">
-        <span className="metric-title">{label}</span>
+        <span className="metric-title" title={title}>{label}</span>
         {icon && <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>{icon}</div>}
       </div>
 

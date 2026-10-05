@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   Wallet,
@@ -13,6 +13,7 @@ import {
 import { useTransactions } from "../context/TransactionsContext";
 import { useAuth } from "../context/AuthContext";
 import { useBudgets } from "../context/BudgetsContext";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
 import { MetricCard } from "../components/MetricCard";
 import { SpendingChart } from "../components/SpendingChart";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
@@ -25,14 +26,26 @@ import {
 } from "../utils/analytics";
 import { EmptyState } from "../components/EmptyState";
 import type { TransactionType } from "../types";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { calculateFinancialSignals } from "../utils/insights";
+import { generateWeeklyInsight } from "../firebase/ai";
+import { useAiPreferences } from "../context/AiPreferencesContext";
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 export function Dashboard() {
-  const { openQuickAdd } = useOutletContext<{ openQuickAdd: (type?: TransactionType) => void }>();
-  const { transactions } = useTransactions();
+  const navigate = useNavigate();
+  const { openQuickAdd, openAskYourMoney } = useOutletContext<{ openQuickAdd: (type?: TransactionType) => void; openAskYourMoney: () => void }>();
+  const { transactions, addSampleData, clearSampleData } = useTransactions();
   const { budgets } = useBudgets();
+  const { profile } = useFinancialProfile();
   const { user } = useAuth();
+  const { enabled: aiEnabled } = useAiPreferences();
+  const [weeklyInsight, setWeeklyInsight] = useState<{ summary: string; suggestions: string[] } | null>(null);
+  const [insightBusy, setInsightBusy] = useState(false);
+  const [insightError, setInsightError] = useState("");
+  const reduceMotion = useReducedMotion();
 
   // Time-aware contextual greeting
   const greeting = useMemo(() => {
@@ -43,15 +56,34 @@ export function Dashboard() {
   }, []);
 
   const summary = useMemo(() => {
-    return computeFinancialSummary(transactions, budgets);
-  }, [transactions, budgets]);
+    return computeFinancialSummary(transactions, budgets, profile.monthlyIncome, profile.monthlyBudget);
+  }, [transactions, budgets, profile.monthlyIncome, profile.monthlyBudget]);
   const comparison = useMemo(() => calculatePeriodComparison(transactions), [transactions]);
+  const signals = useMemo(() => calculateFinancialSignals(transactions, budgets), [transactions, budgets]);
+
+  async function loadWeeklyInsight() {
+    if (!aiEnabled || insightBusy) return;
+    setInsightBusy(true); setInsightError("");
+    try { setWeeklyInsight(await generateWeeklyInsight()); }
+    catch (cause) {
+      const code = typeof cause === "object" && cause && "code" in cause ? String(cause.code) : "";
+      setInsightError(code.includes("resource-exhausted") ? "You've reached your AI limit for now. Try again later." : "AI couldn't respond right now. Try again.");
+    } finally { setInsightBusy(false); }
+  }
 
   const chartSeries = useMemo(() => {
     return computeDailySpendingSeries(transactions, 30);
   }, [transactions]);
 
   const recentTransactions = transactions.slice(0, 5);
+  const realTransactions = transactions.filter((transaction) => transaction.isSampleData !== true);
+  const hasSampleData = transactions.some((transaction) => transaction.isSampleData === true);
+  const checklistItems = [
+    { label: "Set income", done: profile.monthlyIncome > 0, action: () => navigate("/onboarding") },
+    { label: "Set budget", done: profile.monthlyBudget > 0, action: () => navigate("/onboarding") },
+    { label: "Add first expense", done: realTransactions.some((transaction) => transaction.type !== "income"), action: () => openQuickAdd("expense") },
+    { label: "Set category limits", done: budgets.some((budget) => budget.limit > 0), action: () => navigate("/budgets") },
+  ];
   const displayName = user?.displayName?.trim() || user?.email || "there";
   const trend = (change: number | null, lowerIsBetter = false) => change === null
     ? { value: "No previous period" }
@@ -99,10 +131,31 @@ export function Dashboard() {
             </div>
           </div>
 
+          {checklistItems.some((item) => !item.done) && <motion.section
+            className="get-started-card"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            aria-labelledby="get-started-title"
+          >
+            <div className="get-started-heading">
+              <div><div className="eyebrow">A FEW SIMPLE STEPS</div><h2 id="get-started-title">Get started</h2></div>
+              <span>{checklistItems.filter((item) => item.done).length} of {checklistItems.length} done</span>
+            </div>
+            <div className="get-started-list">
+              {checklistItems.map((item) => <div className="get-started-item" key={item.label}>
+                <motion.span className={`get-started-check ${item.done ? "complete" : ""}`} initial={false} animate={{ scale: item.done ? [0.7, 1.1, 1] : 1 }} transition={{ duration: 0.28 }} aria-hidden="true">{item.done ? "✓" : ""}</motion.span>
+                <span>{item.label}</span>
+                {!item.done && <button type="button" className="button button-ghost" onClick={item.action}>Set up</button>}
+              </div>)}
+            </div>
+          </motion.section>}
+
           {/* Primary Financial Metrics */}
           <section className="metrics-strip">
             <MetricCard
               label="Money Left"
+              title="How much money you have left after your spending."
               value={formatCurrency(summary.netBalance)}
               numericValue={summary.netBalance}
               formatValue={formatCurrency}
@@ -130,6 +183,7 @@ export function Dashboard() {
             />
             <MetricCard
               label="Saved"
+              title="How much of your income you have kept."
               value={`${summary.savingsRate.toFixed(1)}%`}
               numericValue={summary.savingsRate}
               formatValue={formatPercent}
@@ -137,6 +191,21 @@ export function Dashboard() {
               trend={comparison.savingsRateChange === null ? { value: "No previous period" } : { value: `${comparison.savingsRateChange > 0 ? "+" : ""}${comparison.savingsRateChange.toFixed(1)} pts`, isPositive: comparison.savingsRateChange > 0, isNegative: comparison.savingsRateChange < 0 }}
               icon={<Percent size={14} />}
             />
+          </section>
+
+          <section className="dashboard-insights" aria-labelledby="insights-title">
+            <div className="dashboard-insights-head"><div><div className="eyebrow">YOUR RECENT ACTIVITY</div><h2 id="insights-title">Weekly money check-in</h2></div><div className="dashboard-insight-actions"><button type="button" className="button button-secondary" onClick={openAskYourMoney}>Ask your money</button>{aiEnabled && <button type="button" className="button button-secondary" onClick={() => void loadWeeklyInsight()} disabled={insightBusy}><Sparkles size={14} />{insightBusy ? "Summarizing…" : "Explain my week"}</button>}</div></div>
+            <div className="dashboard-insights-grid">
+              <div><span>Money out this week</span><strong>{formatCurrency(signals.weeklyExpenses)}</strong><small>{signals.previousWeekExpenses > 0 ? `${signals.weeklyExpenses > signals.previousWeekExpenses ? "Up" : "Down"} ${formatCurrency(Math.abs(signals.weeklyExpenses - signals.previousWeekExpenses))} from last week` : "Compared with your previous 7 days"}</small></div>
+              <div><span>Budget reminders</span><strong>{signals.budgetAlerts.length ? signals.budgetAlerts.length : "All clear"}</strong><small>{signals.budgetAlerts[0] ? `${signals.budgetAlerts[0].category} is at ${Math.round(signals.budgetAlerts[0].spent / signals.budgetAlerts[0].limit * 100)}% with ${signals.budgetAlerts[0].daysLeft} days left` : "No category limits are close to their limit"}</small></div>
+              <div><span>Activity to review</span><strong>{signals.unusual.length + signals.duplicates.length}</strong><small>{signals.duplicates.length ? `${signals.duplicates.length} possible duplicate group${signals.duplicates.length > 1 ? "s" : ""}` : signals.unusual.length ? `${signals.unusual.length} unusual charge${signals.unusual.length > 1 ? "s" : ""} for you to check` : "No unusual or repeated entries found"}</small></div>
+            </div>
+            {signals.budgetAlerts.slice(0, 2).map((alert) => <p className="signal-alert" key={alert.category}>{alert.category} is at {Math.round(alert.spent / alert.limit * 100)}% with {alert.daysLeft} days left.</p>)}
+            {signals.unusual.map((transaction) => <p className="signal-alert" key={`unusual-${transaction.id}`}>Check {transaction.description || transaction.category} · {formatCurrency(transaction.amount)} is much higher than your past {transaction.category} entries.</p>)}
+            {signals.duplicates.map((group) => <p className="signal-alert" key={`duplicate-${group[0].id}`}>Possible duplicate: {group[0].description || group[0].category} · {formatCurrency(group[0].amount)} on {formatDate(group[0].date)}. Review it in Transactions.</p>)}
+            {signals.recurring.length > 0 && <div className="signal-recurring"><strong>Possible regular payments</strong>{signals.recurring.map((item) => <span key={item.merchant}>{item.merchant} · about {formatCurrency(item.amount)} every {item.intervalDays >= 26 ? "month" : "week"}</span>)}</div>}
+            {weeklyInsight && <div className="ai-weekly-summary"><strong>AI explanation</strong><p>{weeklyInsight.summary}</p>{weeklyInsight.suggestions.map((item) => <p key={item}>• {item}</p>)}</div>}
+            {insightError && <p role="alert" className="signal-error">{insightError}</p>}
           </section>
 
           {/* Dominant Financial Terrain Visualization & Allocation Breakdown */}
@@ -148,6 +217,7 @@ export function Dashboard() {
               <button type="button" className="button button-primary" onClick={() => openQuickAdd("income")}>Money In</button>
               <button type="button" className="button button-secondary" onClick={() => openQuickAdd("expense")}>Money Out</button>
             </div>
+            <button type="button" className="button button-ghost" onClick={() => void addSampleData()}>Try with sample data</button>
           </section> : <section
             style={{
               display: "grid",
@@ -160,6 +230,11 @@ export function Dashboard() {
             <SpendingChart data={chartSeries} onLogExpense={openQuickAdd} />
             <CategoryBreakdown categories={summary.categorySpends} monthlyIncome={summary.monthlyIncome} />
           </section>}
+
+          {hasSampleData && <div className="sample-data-notice" role="status">
+            <span>Sample data · these entries are examples, not your transactions.</span>
+            <button type="button" className="button button-ghost" onClick={() => void clearSampleData()}>Clear sample data</button>
+          </div>}
 
           {/* Institutional Ledger Snippet & Forward Predictive Horizon */}
           <section
@@ -193,7 +268,7 @@ export function Dashboard() {
                   className="button button-ghost"
                   style={{ fontSize: "12px", padding: "4px 8px" }}
                 >
-                  <span>Full Ledger</span>
+                  <span>View all transactions</span>
                   <ArrowRight size={12} />
                 </Link>
               </div>
@@ -214,10 +289,12 @@ export function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
+                      <AnimatePresence initial={false}>
                       {recentTransactions.map((tx) => (
-                        <tr key={tx.id}>
+                        <motion.tr key={tx.id} layout initial={reduceMotion ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, scaleY: 0 }} transition={{ duration: reduceMotion ? 0 : 0.18 }} style={{ transformOrigin: "top" }}>
                           <td style={{ fontWeight: 500, color: "#ffffff" }}>
                             {tx.description || tx.category}
+                            {tx.isSampleData && <span className="sample-data-badge">Sample</span>}
                           </td>
                           <td>
                             <span className="category-pill">{tx.category}</span>
@@ -233,22 +310,25 @@ export function Dashboard() {
                               {isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}
                             </span>
                           </td>
-                        </tr>
+                        </motion.tr>
                       ))}
+                      </AnimatePresence>
                     </tbody>
                   </table>
                 </div>
                 <div className="dashboard-mobile-transactions">
+                  <AnimatePresence initial={false}>
                   {recentTransactions.map((tx) => (
-                    <div className="dashboard-mobile-transaction" key={tx.id}>
+                    <motion.div layout initial={reduceMotion ? false : { opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, height: 0, paddingBlock: 0 }} transition={{ duration: reduceMotion ? 0 : 0.18 }} className="dashboard-mobile-transaction" key={tx.id}>
                       <span className="transaction-category-icon" aria-hidden="true"><Receipt size={16} /></span>
                       <span className="dashboard-mobile-transaction-copy">
-                        <strong>{tx.category}</strong>
+                      <strong>{tx.category}{tx.isSampleData && <span className="sample-data-badge">Sample</span>}</strong>
                         <span>{formatDate(tx.date)}</span>
                       </span>
                       <strong className={isIncomeTransaction(tx) ? "amount-credit" : "amount-debit"}>{isIncomeTransaction(tx) ? "+" : "−"}{formatCurrency(tx.amount)}</strong>
-                    </div>
+                    </motion.div>
                   ))}
+                  </AnimatePresence>
                 </div>
                 </>
               )}
@@ -276,7 +356,7 @@ export function Dashboard() {
                       <span className="dot" />
                       <span>FORWARD HORIZON</span>
                     </div>
-                    <h2 style={{ fontSize: "1.4rem", marginTop: "2px" }}>Month-end estimate</h2>
+                    <h2 title="What we expect you may spend by the end of the month." style={{ fontSize: "1.4rem", marginTop: "2px" }}>Month-end spending estimate</h2>
                   </div>
                 </div>
 
