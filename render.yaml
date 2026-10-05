@@ -39,9 +39,8 @@ services:
         sync: false   # paste with literal \n, e.g. "-----BEGIN PRIVATE KEY-----\nMII..."
 
       # ---- CORS: set to your Render frontend URL ----
-      # Example: https://financial-observatory-client.onrender.com
       - key: FRONTEND_ORIGIN
-        sync: false
+        value: https://financial-observatory-client.onrender.com
 
   # -----------------------------------------------------------
   # Frontend: Render Static Site
