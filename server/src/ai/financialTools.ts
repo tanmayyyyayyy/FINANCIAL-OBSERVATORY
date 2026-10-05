@@ -68,7 +68,7 @@ export const FINANCIAL_TOOL_DECLARATIONS = [
     functionDeclarations: [
       {
         name: "getSpending",
-        description: "Get deterministic expense totals by category for this month or last month.",
+        description: "Get deterministic expense totals by category in INR (₹) for this month or last month.",
         parameters: {
           type: "object",
           properties: {
@@ -80,17 +80,17 @@ export const FINANCIAL_TOOL_DECLARATIONS = [
       },
       {
         name: "getBudgetStatus",
-        description: "Get deterministic budget limits and actual spending for the user's categories.",
+        description: "Get deterministic budget limits and actual spending in INR (₹) for the user's categories.",
         parameters: { type: "object", properties: {} },
       },
       {
         name: "getTrend",
-        description: "Get deterministic monthly expense totals for up to six recent months.",
+        description: "Get deterministic monthly expense totals in INR (₹) for up to six recent months.",
         parameters: { type: "object", properties: {} },
       },
       {
         name: "getTransactions",
-        description: "Get at most ten recent matching expense entries with only merchant, amount, category, and date.",
+        description: "Get at most ten recent matching expense entries in INR (₹) with only merchant, amount, category, and date.",
         parameters: {
           type: "object",
           properties: {

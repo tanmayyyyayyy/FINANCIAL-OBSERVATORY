@@ -194,7 +194,7 @@ export async function handleWeeklyInsight(uid: string) {
       .map(([category, amount]) => ({ category, amount })),
   };
   const parsed = await generateJson<unknown>({
-    prompt: `Write a brief, friendly weekly spending summary and up to three practical suggestions. Use only these deterministic values; do not invent totals or claim causation. If the values are zero, say there is not enough recorded spending yet. Data: ${JSON.stringify(summary)}`,
+    prompt: `Write a brief, friendly weekly spending summary and up to three practical suggestions. The user's currency is Indian Rupees (₹). Format all amounts using ₹ (e.g. ₹400) or Rs. Use only these deterministic values; do not invent totals or claim causation. If the values are zero, say there is not enough recorded spending yet. Data: ${JSON.stringify(summary)}`,
     schema: INSIGHT_SCHEMA,
   });
   return validateInsight(parsed);
@@ -225,7 +225,7 @@ export async function handleAskYourMoney(uid: string, data: unknown) {
         role: "user",
         parts: [
           {
-            text: "You are Ask your money, a friendly guide for this user's finances. Use the available server tools before answering any question about their personal financial data. The tools return deterministic summaries; do not alter or invent their numbers. Do not ask for private credentials. Keep answers concise and in plain language. Return strict JSON with answer and followups.",
+            text: "You are Ask your money, a friendly guide for this user's finances. The user's currency is Indian Rupees (₹). Always format currency amounts using ₹ (e.g. ₹400) or Rs, never in dollars ($) unless explicitly requested. Use the available server tools before answering any question about their personal financial data. The tools return deterministic summaries in INR (₹); do not alter or invent their numbers. Do not ask for private credentials. Keep answers concise and in plain language. Return strict JSON with answer and followups.",
           },
         ],
       },
