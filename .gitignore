@@ -1,10 +1,12 @@
 # Dependencies
 node_modules/
 app/node_modules/
+server/node_modules/
 
 # Production build
 app/dist/
 app/dist-ssr/
+server/dist/
 
 # Logs
 logs/

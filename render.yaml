@@ -1,0 +1,78 @@
+services:
+  # -----------------------------------------------------------
+  # Backend: Render Web Service
+  # Node/Express/TypeScript — exposes /health and /api/ai/*
+  # -----------------------------------------------------------
+  - type: web
+    name: financial-observatory-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+      # ---- Gemini AI key (Render secret — never commit) ----
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # ---- Firebase Project ID (non-secret) ----
+      - key: FIREBASE_PROJECT_ID
+        value: financial-observatory-1b20e
+
+      # ---- Firebase Admin credentials ----
+      # Option A (Recommended): paste full service-account JSON as one Render secret
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      # Option B: individual fields (alternative to Option A)
+      # Set these instead of FIREBASE_SERVICE_ACCOUNT_JSON if you prefer.
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false   # paste with literal \n, e.g. "-----BEGIN PRIVATE KEY-----\nMII..."
+
+      # ---- CORS: set to your Render frontend URL ----
+      # Example: https://financial-observatory-client.onrender.com
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+  # -----------------------------------------------------------
+  # Frontend: Render Static Site
+  # React/Vite — served as a static SPA with SPA fallback
+  # -----------------------------------------------------------
+  - type: web
+    name: financial-observatory-client
+    runtime: static
+    rootDir: app
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # ---- Backend API base URL (set to your Render API service URL) ----
+      # Example: https://financial-observatory-api.onrender.com
+      - key: VITE_API_BASE_URL
+        sync: false
+
+      # ---- Firebase Web SDK (non-secret, safe to bake into bundle) ----
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: financial-observatory-1b20e.firebaseapp.com
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: financial-observatory-1b20e
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        value: financial-observatory-1b20e.firebasestorage.app
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        value: "994080928480"
+      - key: VITE_FIREBASE_APP_ID
+        value: "1:994080928480:web:76dd6cf2e383c69285d685"
