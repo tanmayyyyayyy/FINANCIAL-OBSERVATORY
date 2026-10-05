@@ -6,7 +6,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = Number(process.env.PORT) || 5001;
+const HOST = "0.0.0.0"; // Bind all interfaces — required for Render
+
+// ── Request tracer — logs METHOD + path only, never headers/body/auth ───────
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // Allowed frontend origins for CORS
 const rawOrigin = process.env.FRONTEND_ORIGIN || process.env.CLIENT_ORIGIN;
@@ -32,37 +39,29 @@ app.use(
 // Payload limit for receipt uploads (image data)
 app.use(express.json({ limit: "5mb" }));
 
-// ── Health check — registered FIRST, before Firebase or AI routes ──────────
-// This must always respond regardless of Firebase credential state so that
-// Render's health checker (and x-render-routing) can reach the process.
+// ── Health check — registered first, before Firebase or AI routes ───────────
 app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true, service: "financial-observatory-api" });
 });
 
-// ── AI routes — imported lazily after Express is configured ────────────────
-// Firebase Admin is initialised inside firebase.ts at module-load time.
-// Deferring this import to after app.listen() means the server is already
-// bound to the port and /health is already responding before Firebase init
-// runs. A Firebase credential error will be logged but will NOT crash the
-// process or prevent /health from responding.
-import("./routes/ai.js")
-  .then(({ aiRouter }) => {
-    app.use("/api/ai", aiRouter);
-    console.log("AI routes registered.");
-  })
-  .catch((err: unknown) => {
-    console.error(
-      "Failed to load AI routes (Firebase credential issue likely):",
-      err instanceof Error ? err.message : String(err)
-    );
-    // Register a fallback so /api/ai/* returns 503 instead of 404
-    app.use("/api/ai", (_req, res) => {
-      res.status(503).json({
-        error: "ServiceUnavailable",
-        message: "AI backend failed to initialise. Check server credentials.",
-      });
+// ── AI routes — loaded synchronously via require() (CJS compatible) ─────────
+// Using require() instead of dynamic import() avoids the CJS/ESM mismatch
+// that occurred with module: NodeNext producing import() inside CJS output.
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { aiRouter } = require("./routes/ai") as { aiRouter: express.Router };
+  app.use("/api/ai", aiRouter);
+  console.log("[STARTUP] AI routes registered.");
+} catch (err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[STARTUP] Failed to load AI routes:", msg);
+  app.use("/api/ai", (_req, res) => {
+    res.status(503).json({
+      error: "ServiceUnavailable",
+      message: "AI backend failed to initialise. Check server logs.",
     });
   });
+}
 
 // 404 handler
 app.use((_req, res) => {
@@ -71,14 +70,14 @@ app.use((_req, res) => {
 
 // Generic error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("Unhandled error:", err.message);
+  console.error("[ERROR]", err.message);
   res.status(500).json({ error: "InternalError", message: "An unexpected server error occurred." });
 });
 
-// Bind the port FIRST — health endpoint responds immediately.
-// AI route registration completes asynchronously after.
-app.listen(PORT, () => {
-  console.log(`Financial Observatory API running on port ${PORT}`);
+// ── Bind to HOST:PORT ────────────────────────────────────────────────────────
+app.listen(PORT, HOST, () => {
+  console.log(`[STARTUP] SERVER_READY host=${HOST} port=${PORT}`);
+  console.log(`[STARTUP] /health registered -> GET http://${HOST}:${PORT}/health`);
 });
 
 export default app;
