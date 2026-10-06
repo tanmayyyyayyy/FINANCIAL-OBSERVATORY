@@ -94,6 +94,7 @@ export async function generateJson<T>({ prompt, schema, image, tools }: Generate
 }
 
 export async function generateJsonWithTools<T>(options: {
+  systemInstruction?: string;
   contents: Array<{ role: "user" | "model"; parts: Array<Record<string, unknown>> }>;
   schema: Record<string, unknown>;
   tools: Array<Record<string, unknown>>;
@@ -111,6 +112,9 @@ export async function generateJsonWithTools<T>(options: {
           headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() },
           body: JSON.stringify({
             contents,
+            ...(options.systemInstruction
+              ? { systemInstruction: { parts: [{ text: options.systemInstruction }] } }
+              : {}),
             ...(hasToolResults ? {} : { tools: options.tools }),
             generationConfig: hasToolResults
               ? { temperature: 0.15, maxOutputTokens: 1600, responseMimeType: "application/json", responseSchema: options.schema }
