@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Observatory</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Auth screen -->
+    <div id="screen-auth" class="screen hidden">
+      <header class="popup-header">
+        <div class="brand">
+          <div class="brand-icon">◈</div>
+          <span class="brand-name">Financial Observatory</span>
+        </div>
+      </header>
+      <div class="auth-body">
+        <div class="eyebrow">SIGN IN TO CONTINUE</div>
+        <h1 class="auth-title">Welcome back.</h1>
+        <p class="auth-sub">Sign in to add expenses from your browser.</p>
+        <div id="auth-error" class="error-banner hidden"></div>
+        <form id="auth-form" novalidate>
+          <div class="field-group">
+            <label for="auth-email">Email</label>
+            <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <div class="field-group">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+          <button id="auth-submit" type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+        <a id="open-app-auth" href="#" class="open-app-link">Open Financial Observatory ↗</a>
+      </div>
+    </div>
+
+    <!-- Expense form screen -->
+    <div id="screen-form" class="screen hidden">
+      <header class="popup-header">
+        <div class="brand">
+          <div class="brand-icon">◈</div>
+          <span class="brand-name">Financial Observatory</span>
+        </div>
+        <div class="header-right">
+          <span id="user-email-display" class="user-email"></span>
+          <button id="sign-out-btn" class="btn-ghost" title="Sign out">↪ Sign out</button>
+        </div>
+      </header>
+
+      <div id="success-banner" class="success-banner hidden" role="status" aria-live="polite"></div>
+
+      <form id="expense-form" novalidate>
+        <div class="amount-hero">
+          <span class="currency-symbol">₹</span>
+          <input
+            id="amount-input"
+            type="text"
+            inputmode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
+            placeholder="0"
+            class="amount-input"
+            aria-label="Expense amount in Indian Rupees"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div id="validation-error" class="error-banner hidden"></div>
+
+        <div class="field-group">
+          <label for="desc-input">What was it?</label>
+          <input id="desc-input" type="text" placeholder="e.g. Lunch, Uber, Groceries" maxlength="80" autocomplete="off" />
+        </div>
+
+        <div class="field-group">
+          <label>Category</label>
+          <div id="category-grid" class="category-grid" role="radiogroup" aria-label="Expense category"></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group flex-1">
+            <label for="date-input">Date</label>
+            <input id="date-input" type="date" />
+          </div>
+          <div class="field-group flex-1">
+            <label for="payment-input">Payment</label>
+            <select id="payment-input">
+              <option value="UPI">UPI</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="submit-btn" type="submit" class="btn btn-primary submit-btn" disabled>
+          <span id="submit-label">+ Add Expense</span>
+        </button>
+      </form>
+
+      <div class="popup-footer">
+        <a id="open-app-form" href="#" class="open-app-link">Open Financial Observatory ↗</a>
+      </div>
+    </div>
+
+    <!-- Loading screen -->
+    <div id="screen-loading" class="screen">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

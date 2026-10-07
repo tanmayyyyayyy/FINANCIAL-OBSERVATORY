@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles } from "lucide-react";
+import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles, Puzzle, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
@@ -31,6 +31,14 @@ export function Settings() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [aiActionError, setAiActionError] = useState("");
+  const [showExtensionGuide, setShowExtensionGuide] = useState(false);
+  const [copiedExtensionPath, setCopiedExtensionPath] = useState(false);
+
+  function handleCopyPath() {
+    navigator.clipboard?.writeText("extension/");
+    setCopiedExtensionPath(true);
+    setTimeout(() => setCopiedExtensionPath(false), 2000);
+  }
 
   async function handleToggleAi() {
     setAiActionError("");
@@ -379,6 +387,156 @@ export function Settings() {
                 <p style={{ lineHeight: 1.65, marginTop: "8px" }}>{AI_PRIVACY_EXPLANATION}</p>
               </details>
               {(aiPreferenceError || aiActionError) && <div role="alert" style={{ color: "var(--accent-neg)", fontSize: "12px" }}>{aiActionError || aiPreferenceError}</div>}
+            </div>
+          </section>
+
+          {/* Chrome Extension (Desktop Only) */}
+          <section
+            className="settings-section chrome-extension-section"
+            style={{
+              padding: "28px 0",
+              borderTop: "1px solid var(--border-subtle)",
+              display: "grid",
+              gridTemplateColumns: "240px 1fr",
+              gap: "32px",
+            }}
+          >
+            <div>
+              <div className="eyebrow">
+                <Puzzle size={12} />
+                <span>DESKTOP COMPANION</span>
+              </div>
+              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Chrome Extension</h2>
+              <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
+                Add expenses directly from your browser.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div
+                style={{
+                  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--radius-md, 8px)",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                      <span style={{ fontWeight: 600, color: "#ffffff", fontSize: "14.5px" }}>
+                        Financial Observatory for Chrome
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "10.5px",
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          background: "rgba(99, 102, 241, 0.15)",
+                          color: "var(--accent-primary, #818cf8)",
+                          border: "1px solid rgba(99, 102, 241, 0.25)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Manifest V3
+                      </span>
+                    </div>
+                    <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.6)", margin: 0, lineHeight: 1.5 }}>
+                      Log transactions in seconds without leaving your current tab. Syncs directly to your account.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowExtensionGuide((prev) => !prev)}
+                    className="button button-primary"
+                    style={{
+                      fontSize: "12.5px",
+                      padding: "8px 14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      whiteSpace: "nowrap",
+                    }}
+                    aria-expanded={showExtensionGuide}
+                  >
+                    <Puzzle size={13} />
+                    <span>Get Chrome Extension</span>
+                    {showExtensionGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                </div>
+
+                {showExtensionGuide && (
+                  <div
+                    style={{
+                      marginTop: "4px",
+                      paddingTop: "16px",
+                      borderTop: "1px solid var(--border-subtle)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "14px",
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                      color: "rgba(255, 255, 255, 0.75)",
+                    }}
+                  >
+                    <div style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255, 255, 255, 0.45)" }}>
+                      Manual Installation Steps (Developer Mode)
+                    </div>
+
+                    <ol style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <li>
+                        Open Chrome and go to <code style={{ background: "rgba(255, 255, 255, 0.08)", padding: "2px 6px", borderRadius: "4px", color: "#e2e8f0" }}>chrome://extensions</code>
+                      </li>
+                      <li>
+                        Turn on <strong style={{ color: "#ffffff" }}>Developer mode</strong> using the toggle in the top-right corner.
+                      </li>
+                      <li>
+                        Click the <strong style={{ color: "#ffffff" }}>Load unpacked</strong> button on the top-left.
+                      </li>
+                      <li>
+                        Select the <code style={{ background: "rgba(255, 255, 255, 0.08)", padding: "2px 6px", borderRadius: "4px", color: "#e2e8f0" }}>extension/</code> folder in this repository.
+                      </li>
+                    </ol>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        background: "rgba(0, 0, 0, 0.35)",
+                        border: "1px solid var(--border-subtle)",
+                        borderRadius: "6px",
+                        gap: "10px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      <span style={{ color: "rgba(255, 255, 255, 0.6)", fontFamily: "monospace" }}>
+                        Directory: extension/
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyPath}
+                        className="button button-secondary"
+                        style={{ padding: "4px 8px", fontSize: "11.5px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                      >
+                        {copiedExtensionPath ? <Check size={11} color="var(--accent-pos, #34d399)" /> : <Copy size={11} />}
+                        <span>{copiedExtensionPath ? "Copied" : "Copy path"}</span>
+                      </button>
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: "12px", color: "rgba(255, 255, 255, 0.45)" }}>
+                      Pin the extension to your Chrome toolbar, then log in using your account credentials to start adding expenses instantly.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
