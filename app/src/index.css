@@ -886,6 +886,87 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Centre Add action — visually stronger */
+.mobile-nav-add {
+  color: var(--accent-pos) !important;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+.mobile-nav-add > svg {
+  width: 20px;
+  height: 20px;
+}
+.mobile-nav-add.active {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.mobile-nav-add:active {
+  transform: scale(0.93);
+  transition: transform 80ms ease;
+}
+
+/* Mobile-only Dashboard quick-action CTA strip */
+.dashboard-mobile-cta {
+  display: none;
+}
+@media (max-width: 768px) {
+  .dashboard-mobile-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    background: rgba(255, 255, 255, 0.018);
+  }
+  .dashboard-mobile-cta-copy {
+    flex: 1;
+    min-width: 0;
+  }
+  .dashboard-mobile-cta-copy strong {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+  .dashboard-mobile-cta-copy span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.4;
+  }
+  .dashboard-mobile-cta-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-pos);
+    color: #000;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    white-space: nowrap;
+  }
+  .dashboard-mobile-cta-btn:hover {
+    opacity: 0.88;
+  }
+  .dashboard-mobile-cta-btn:active {
+    transform: scale(0.96);
+  }
+  /* Hide the desktop header CTA on mobile to avoid duplication */
+  .dashboard-header-cta {
+    display: none;
+  }
+}
+
 /* =========================================================
    AIRY METRICS ROW (BREATHING DIRECTLY ON CANVAS)
 ========================================================= */

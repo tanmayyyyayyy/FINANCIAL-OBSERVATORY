@@ -119,7 +119,7 @@ export function Dashboard() {
               </p>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }} className="dashboard-header-cta">
               <button
                 type="button"
                 className="button button-primary"
@@ -129,6 +129,23 @@ export function Dashboard() {
                 <span>Add transaction</span>
               </button>
             </div>
+          </div>
+
+          {/* Mobile-only quick-action strip — hidden on desktop via CSS */}
+          <div className="dashboard-mobile-cta" aria-label="Add expense quick action">
+            <div className="dashboard-mobile-cta-copy">
+              <strong>Track an expense</strong>
+              <span>Add your latest spending in seconds.</span>
+            </div>
+            <button
+              type="button"
+              className="dashboard-mobile-cta-btn"
+              onClick={() => openQuickAdd("expense")}
+              aria-label="Add expense"
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              <span>+ Add Expense</span>
+            </button>
           </div>
 
           {checklistItems.some((item) => !item.done) && <motion.section
