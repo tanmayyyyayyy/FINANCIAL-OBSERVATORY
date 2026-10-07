@@ -46,8 +46,7 @@ export function AskYourMoney({ open, onClose }: { open: boolean; onClose: () => 
       setFollowups(response.followups.length ? response.followups : followupOptions);
       setLatestTools(response.toolResults);
     } catch (cause) {
-      const code = typeof cause === "object" && cause && "code" in cause ? String(cause.code) : "";
-      setError(code.includes("resource-exhausted") ? "You've reached your AI limit for now. Try again later." : code.includes("failed-precondition") ? "We couldn't safely understand that. Please try again." : "AI couldn't respond right now. Try again.");
+      setError(cause instanceof Error ? cause.message : "AI couldn't respond right now. Try again.");
       setMessages(messages);
     } finally { setBusy(false); }
   }

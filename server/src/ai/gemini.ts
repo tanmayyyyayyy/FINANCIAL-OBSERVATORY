@@ -145,7 +145,11 @@ export async function generateJsonWithTools<T>(options: {
     const parts = candidate?.content?.parts ?? [];
     const calls = parts.flatMap((part) =>
       isRecord(part.functionCall) && typeof part.functionCall.name === "string"
-        ? [{ name: part.functionCall.name, args: part.functionCall.args ?? {} }]
+        ? [{
+            name: part.functionCall.name,
+            args: part.functionCall.args ?? {},
+            id: typeof part.functionCall.id === "string" ? part.functionCall.id : undefined,
+          }]
         : []
     );
     if (calls.length) {
@@ -154,7 +158,11 @@ export async function generateJsonWithTools<T>(options: {
       contents = [...contents, { role: candidate.content.role === "user" ? "user" : "model", parts: candidate.content.parts ?? [] }];
       const functionResponses = await Promise.all(
         calls.map(async (call) => ({
-          functionResponse: { name: call.name, response: { result: await options.runTool(call.name, call.args) } },
+          functionResponse: {
+            name: call.name,
+            ...(call.id ? { id: call.id } : {}),
+            response: { result: await options.runTool(call.name, call.args) },
+          },
         }))
       );
       contents = [...contents, { role: "user", parts: functionResponses }];
