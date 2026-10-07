@@ -4,9 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ObservatoryMark } from "../components/ObservatoryMark";
 import { useTransactions } from "../context/TransactionsContext";
 import type { PaymentMethod, TransactionType } from "../types";
-
-const expenseCategories = ["Food & Dining", "Transport", "Utilities", "Entertainment", "Shopping", "Housing", "Health", "Other"];
-const incomeCategories = ["Salary", "Pocket Money", "Freelance", "Gift", "Refund", "Other"];
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../data/categories";
 
 export function AddExpense() {
   const navigate = useNavigate();
@@ -147,7 +145,7 @@ export function AddExpense() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                {(movementType === "income" ? incomeCategories : expenseCategories).map((item) => <option key={item} value={item}>{item}</option>)}
+                {(movementType === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
 

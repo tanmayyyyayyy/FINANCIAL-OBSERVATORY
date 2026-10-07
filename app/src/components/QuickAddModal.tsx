@@ -3,6 +3,7 @@ import { X, ArrowRight, Sparkles, Check } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTransactions } from "../context/TransactionsContext";
 import type { PaymentMethod, TransactionType } from "../types";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../data/categories";
 import { containDialogFocus } from "../utils/dialogFocus";
 import { useAiPreferences } from "../context/AiPreferencesContext";
 import { useAuth } from "../context/AuthContext";
@@ -18,8 +19,6 @@ interface QuickAddModalProps {
   initialType?: TransactionType;
 }
 
-const expenseCategories = ["Food & Dining", "Transport", "Utilities", "Entertainment", "Shopping", "Housing", "Health", "Other"];
-const incomeCategories = ["Salary", "Pocket Money", "Freelance", "Gift", "Refund", "Other"];
 
 export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expense" }: QuickAddModalProps) {
   const { addTransaction } = useTransactions();
@@ -267,7 +266,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
               <label>Type<AccessibleSelect label="Money type" value={receiptDraft.type === "income" ? "Money In" : receiptDraft.type === "expense" ? "Money Out" : ""} placeholder="Choose type" options={["Money Out", "Money In"]} onChange={(value) => setReceiptDraft({ ...receiptDraft, type: value === "Money In" ? "income" : "expense" })} /></label>
               <label>Amount<input type="number" min="0.01" step="0.01" value={receiptDraft.amount ?? ""} onChange={(event) => setReceiptDraft({ ...receiptDraft, amount: event.target.value ? Number(event.target.value) : null })} /></label>
               <label>Merchant<input value={receiptDraft.merchant ?? ""} onChange={(event) => setReceiptDraft({ ...receiptDraft, merchant: event.target.value || null })} /></label>
-              <label>Category<AccessibleSelect label="Transaction category" value={receiptDraft.category ?? ""} placeholder="Choose category" options={[...expenseCategories, ...incomeCategories].filter((value, i, list) => list.indexOf(value) === i)} onChange={(value) => setReceiptDraft({ ...receiptDraft, category: value })} /></label>
+              <label>Category<AccessibleSelect label="Transaction category" value={receiptDraft.category ?? ""} placeholder="Choose category" options={[...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].filter((value, i, list) => list.indexOf(value) === i)} onChange={(value) => setReceiptDraft({ ...receiptDraft, category: value })} /></label>
               <label>Payment method<AccessibleSelect label="Payment method" value={receiptDraft.paymentMethod ?? ""} placeholder="Choose method" options={["UPI", "Credit Card", "Debit Card", "Cash", "Bank Transfer"]} onChange={(value) => setReceiptDraft({ ...receiptDraft, paymentMethod: value as PaymentMethod })} /></label>
               <label>Date<input type="date" value={receiptDraft.date ?? ""} onChange={(event) => setReceiptDraft({ ...receiptDraft, date: event.target.value || null })} /></label>
             </div>
@@ -280,7 +279,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
               <label>Money type<AccessibleSelect label="Money type" value={draft.type === "income" ? "Money In" : "Money Out"} options={["Money Out", "Money In"]} onChange={(value) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, type: value === "Money In" ? "income" : "expense" } : item))} /></label>
               <label>Amount<input type="number" min="0.01" step="0.01" value={draft.amount ?? ""} onChange={(event) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, amount: event.target.value ? Number(event.target.value) : null } : item))} /></label>
               <label>Merchant<input value={draft.merchant} onChange={(event) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, merchant: event.target.value } : item))} /></label>
-              <label>Category<AccessibleSelect label="Transaction category" value={draft.category ?? ""} placeholder="Choose category" options={[...expenseCategories, ...incomeCategories].filter((value, i, list) => list.indexOf(value) === i)} onChange={(value) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, category: value } : item))} /></label>
+              <label>Category<AccessibleSelect label="Transaction category" value={draft.category ?? ""} placeholder="Choose category" options={[...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].filter((value, i, list) => list.indexOf(value) === i)} onChange={(value) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, category: value } : item))} /></label>
               <label>Payment<AccessibleSelect label="Payment method" value={draft.paymentMethod ?? ""} placeholder="Choose payment" options={["UPI", "Credit Card", "Debit Card", "Cash", "Bank Transfer"]} onChange={(value) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, paymentMethod: value as PaymentMethod } : item))} /></label>
               <label>Date<input type="date" value={draft.date ?? ""} onChange={(event) => setAiDrafts((all) => all.map((item, i) => i === index ? { ...item, date: event.target.value || null } : item))} /></label>
             </div>
@@ -333,7 +332,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
                 label={movementType === "income" ? "Income source" : "Transaction category"}
                 value={category}
                 onChange={setCategory}
-                options={movementType === "income" ? incomeCategories : expenseCategories}
+                options={movementType === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES}
               />
             </div>
 

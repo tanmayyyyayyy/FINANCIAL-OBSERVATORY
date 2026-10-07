@@ -60,6 +60,10 @@ The frontend is a React/Vite single-page app deployed as a Render Static Site. T
 
 See Money In, Money Out, and Money Left alongside category spending, recent transactions, budget context, daily activity, period comparisons, and weekly AI insights.
 
+### Quick Add
+
+Financial Observatory Quick Add is a mobile-first PWA experience designed for recording expenses in seconds.
+
 ### Transactions & Ledger
 
 Record income and expenses with an amount, category, date, payment method, and description. Search, filter, and sort the ledger, then edit or delete entries. Quick entry can parse natural-language transaction descriptions into editable drafts.

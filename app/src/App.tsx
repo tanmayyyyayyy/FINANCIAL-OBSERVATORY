@@ -23,7 +23,9 @@ import { Navbar } from "./components/Navbar";
 import { QuickAddModal } from "./components/QuickAddModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { AskYourMoney } from "./components/AskYourMoney";
+import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import type { TransactionType } from "./types";
+import { QuickAdd } from "./pages/QuickAdd";
 
 import "./index.css";
 
@@ -152,6 +154,7 @@ export default function App() {
             <BudgetsProvider>
               <BrowserRouter>
             <FirebaseErrorNotices />
+            <PwaInstallPrompt />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
@@ -164,6 +167,7 @@ export default function App() {
                 <Route path="/prediction" element={<Prediction />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
+              <Route path="/quick-add" element={<ProtectedRoute><QuickAdd /></ProtectedRoute>} />
               <Route path="/add-expense" element={<ProtectedRoute><AddExpense /></ProtectedRoute>} />
               <Route path="/transaction-success" element={<ProtectedRoute><TransactionSuccess /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />

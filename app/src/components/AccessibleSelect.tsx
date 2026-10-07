@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
-export function AccessibleSelect({ value, options, onChange, label, placeholder }: { value: string; options: string[]; onChange: (value: string) => void; label: string; placeholder?: string }) {
+export function AccessibleSelect({ value, options, onChange, label, placeholder }: { value: string; options: readonly string[]; onChange: (value: string) => void; label: string; placeholder?: string }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(Math.max(0, options.indexOf(value)));
   const root = useRef<HTMLDivElement>(null);
