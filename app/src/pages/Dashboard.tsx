@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Plus,
   Receipt,
+  Mic,
 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useAuth } from "../context/AuthContext";
@@ -25,6 +26,7 @@ import {
   isIncomeTransaction,
 } from "../utils/analytics";
 import { EmptyState } from "../components/EmptyState";
+import { VoiceExpenseModal } from "../components/VoiceExpenseModal";
 import type { TransactionType } from "../types";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sparkles } from "lucide-react";
@@ -43,6 +45,7 @@ export function Dashboard() {
   const { user } = useAuth();
   const { enabled: aiEnabled } = useAiPreferences();
   const [weeklyInsight, setWeeklyInsight] = useState<{ summary: string; suggestions: string[] } | null>(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [insightBusy, setInsightBusy] = useState(false);
   const [insightError, setInsightError] = useState("");
   const reduceMotion = useReducedMotion();
@@ -122,6 +125,16 @@ export function Dashboard() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }} className="dashboard-header-cta">
               <button
                 type="button"
+                className="button button-secondary"
+                onClick={() => setVoiceModalOpen(true)}
+                aria-label="Start voice expense entry"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Mic size={13} />
+                <span>Voice Entry</span>
+              </button>
+              <button
+                type="button"
                 className="button button-primary"
                 onClick={() => openQuickAdd()}
               >
@@ -132,20 +145,31 @@ export function Dashboard() {
           </div>
 
           {/* Mobile-only quick-action strip — hidden on desktop via CSS */}
-          <div className="dashboard-mobile-cta" aria-label="Add expense quick action">
+          <div className="dashboard-mobile-cta" aria-label="Track an expense quick action">
             <div className="dashboard-mobile-cta-copy">
               <strong>Track an expense</strong>
               <span>Add your latest spending in seconds.</span>
             </div>
-            <button
-              type="button"
-              className="dashboard-mobile-cta-btn"
-              onClick={() => openQuickAdd("expense")}
-              aria-label="Add expense"
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              <span>+ Add Expense</span>
-            </button>
+            <div className="dashboard-mobile-cta-actions">
+              <button
+                type="button"
+                className="dashboard-mobile-cta-btn"
+                onClick={() => openQuickAdd("expense")}
+                aria-label="Add expense"
+              >
+                <Plus size={15} strokeWidth={2.5} />
+                <span>+ Add Expense</span>
+              </button>
+              <button
+                type="button"
+                className="dashboard-mobile-cta-btn voice-btn"
+                onClick={() => setVoiceModalOpen(true)}
+                aria-label="Start voice expense entry"
+              >
+                <Mic size={15} strokeWidth={2.5} />
+                <span>🎙 Speak</span>
+              </button>
+            </div>
           </div>
 
           {checklistItems.some((item) => !item.done) && <motion.section
@@ -490,6 +514,7 @@ export function Dashboard() {
         </div>
       </main>
 
+      <VoiceExpenseModal isOpen={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
     </div>
   );
 }

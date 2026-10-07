@@ -1,6 +1,11 @@
 import { getApps, initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore'
 import { firebaseConfig, isFirebaseConfigured } from './config'
 
 export const firebaseApp = isFirebaseConfigured
@@ -8,4 +13,16 @@ export const firebaseApp = isFirebaseConfigured
 	: null
 
 export const auth = firebaseApp ? getAuth(firebaseApp) : null
-export const db = firebaseApp ? getFirestore(firebaseApp) : null
+
+export const db = (() => {
+  if (!firebaseApp) return null;
+  try {
+    return initializeFirestore(firebaseApp, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    return getFirestore(firebaseApp);
+  }
+})();

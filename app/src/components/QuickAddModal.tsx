@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, ArrowRight, Sparkles, Check } from "lucide-react";
+import { X, ArrowRight, Sparkles, Check, Mic } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTransactions } from "../context/TransactionsContext";
 import type { PaymentMethod, TransactionType } from "../types";
@@ -11,6 +11,7 @@ import { parseTransactionText, scanReceipt, type AiTransactionDraft, type Receip
 import { db } from "../firebase/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { AccessibleSelect } from "./AccessibleSelect";
+import { VoiceExpenseModal } from "./VoiceExpenseModal";
 
 interface QuickAddModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
   const [saveError, setSaveError] = useState("");
   const [receiptDraft, setReceiptDraft] = useState<ReceiptDraft | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<number | null>(null);
@@ -222,6 +224,16 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => setVoiceModalOpen(true)}
+              aria-label="Start voice expense entry"
+              style={{ fontSize: "11.5px", padding: "4px 9px", display: "inline-flex", alignItems: "center", gap: "5px" }}
+            >
+              <Mic size={13} />
+              <span>Voice</span>
+            </button>
             <span
               style={{
                 fontFamily: "var(--font-mono)",
@@ -414,6 +426,16 @@ export function QuickAddModal({ isOpen, onClose, onSuccess, initialType = "expen
           </div>
         </form>
       </div>
+
+      <VoiceExpenseModal
+        isOpen={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        onSuccess={() => {
+          setTransactionSaved(true);
+          onSuccess?.();
+          requestClose();
+        }}
+      />
     </div>
   );
 }

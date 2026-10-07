@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Check, AlertCircle, WifiOff } from "lucide-react";
+import { ArrowLeft, Plus, Check, AlertCircle, WifiOff, Mic } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
 import { formatCurrency } from "../utils/formatters";
 import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
+import { VoiceExpenseModal } from "../components/VoiceExpenseModal";
 
 interface QuickCategory {
   id: string; // Database category string
@@ -46,6 +47,7 @@ export function QuickAdd() {
     amount: string;
     categoryLabel: string;
   } | null>(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
   const userInteractedRef = useRef(false);
@@ -255,9 +257,21 @@ export function QuickAdd() {
 
         {/* Main Quick Add Utility Card */}
         <div className="observatory-card quick-main-card">
-          <div className="quick-card-header">
-            <div className="eyebrow" style={{ margin: 0 }}>FINANCIAL OBSERVATORY</div>
-            <h1 className="quick-card-title">Quick Add</h1>
+          <div className="quick-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div className="eyebrow" style={{ margin: 0 }}>FINANCIAL OBSERVATORY</div>
+              <h1 className="quick-card-title">Quick Add</h1>
+            </div>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => setVoiceModalOpen(true)}
+              aria-label="Start voice expense entry"
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <Mic size={14} />
+              <span>🎙 Voice</span>
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="quick-entry-form" noValidate>
@@ -434,6 +448,8 @@ export function QuickAdd() {
           </div>
         </section>
       </div>
+
+      <VoiceExpenseModal isOpen={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
     </div>
   );
 }
