@@ -11,7 +11,7 @@ const commands = [
   { label: "Transactions", hint: "Open your ledger", path: "/ledger", icon: BookOpen },
   { label: "Plan", hint: "View your forecast", path: "/prediction", icon: TrendingUp },
   { label: "Settings", hint: "Manage your account", path: "/settings", icon: Settings },
-  { label: "Add transaction", hint: "Record money in or out", path: "/add-expense", icon: Plus },
+  { label: "Quick Add expense", hint: "Record money in or out", path: "/quick-add", icon: Plus },
   { label: "Ask your money", hint: "Ask about your spending", path: "#ask", icon: MessageCircle },
 ];
 
@@ -41,7 +41,7 @@ export function CommandPalette({ open, onClose, onQuickAdd, onAskYourMoney }: { 
 
   function activate(path?: string) {
     onClose();
-    if (path === "/add-expense") { onQuickAdd(); return; }
+    if (path === "/add-expense" || path === "/quick-add") { onQuickAdd(); return; }
     if (path === "#ask") { onAskYourMoney(); return; }
     if (path) navigate(path);
   }

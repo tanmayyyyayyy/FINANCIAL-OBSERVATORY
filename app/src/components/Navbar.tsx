@@ -63,7 +63,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }:
   const mobileLinks = [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { to: "/budgets", label: "Budgets", icon: PieChart },
-    { to: "/add-expense", label: "Add", icon: Plus },
+    { to: "/quick-add", label: "Add", icon: Plus },
     { to: "/ledger", label: "Transactions", icon: Receipt },
     { to: "/prediction", label: "Plan", icon: TrendingUp },
   ];
@@ -125,7 +125,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }:
                 <span>Add transaction</span>
               </button>
             ) : (
-              <Link to="/add-expense" className="button button-primary" style={{ fontSize: "12.5px" }}>
+              <Link to="/quick-add" className="button button-primary" style={{ fontSize: "12.5px" }}>
                 <Plus size={13} strokeWidth={2.5} />
                 <span>Add transaction</span>
               </Link>
@@ -165,7 +165,7 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }:
               <Link
                 key={item.to}
                 to={item.to}
-                className={`mobile-nav-item ${item.to === "/add-expense" ? "mobile-nav-add" : ""} ${isActive ? "active" : ""}`}
+                className={`mobile-nav-item ${item.to === "/quick-add" || item.to === "/add-expense" ? "mobile-nav-add" : ""} ${isActive ? "active" : ""}`}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={item.label === "Add" ? "Add money in or out" : item.label}
               >

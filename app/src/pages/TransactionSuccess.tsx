@@ -155,7 +155,7 @@ export function TransactionSuccess() {
           </Link>
 
           <Link
-            to="/add-expense"
+            to="/quick-add"
             className="button button-secondary"
             style={{ width: "100%", padding: "12px", justifyContent: "center" }}
           >

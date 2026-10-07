@@ -1,140 +1,439 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Activity, BriefcaseBusiness, CarFront, CircleEllipsis, Clapperboard, HeartPulse, House, ShoppingBag, Utensils, WalletCards, Zap } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ObservatoryMark } from "../components/ObservatoryMark";
-import { EXPENSE_CATEGORIES } from "../data/categories";
+import { ArrowLeft, Plus, Check, AlertCircle, WifiOff } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
-import type { Transaction } from "../types";
+import { useBudgets } from "../context/BudgetsContext";
 import { formatCurrency } from "../utils/formatters";
+import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
 
-const MAX_AMOUNT = 100_000_000;
-const categoryIcons: Record<string, typeof Utensils> = {
-  "Food & Dining": Utensils, Transport: CarFront, Utilities: Zap,
-  Entertainment: Clapperboard, Shopping: ShoppingBag, Housing: House,
-  Health: HeartPulse, Other: CircleEllipsis,
-};
-
-function localDateString(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+interface QuickCategory {
+  id: string; // Database category string
+  label: string; // Display label
+  icon: string; // Emoji icon
 }
 
-function isExpense(transaction: Transaction) {
-  return transaction.type === undefined || transaction.type === "expense";
-}
+const BASE_CATEGORIES: QuickCategory[] = [
+  { id: "Food & Dining", label: "Food", icon: "🍔" },
+  { id: "Transport", label: "Travel", icon: "🚕" },
+  { id: "Shopping", label: "Shopping", icon: "🛍" },
+  { id: "Utilities", label: "Bills", icon: "🏠" },
+  { id: "Entertainment", label: "Entertainment", icon: "🎮" },
+  { id: "Health", label: "Health", icon: "💊" },
+  { id: "Housing", label: "Housing", icon: "🏢" },
+  { id: "Other", label: "Other", icon: "📦" },
+];
+
+const QUICK_PRESETS = [
+  { amount: "100", category: "Food & Dining", note: "Coffee", label: "₹100 Coffee", icon: "☕" },
+  { amount: "200", category: "Transport", note: "Travel", label: "₹200 Travel", icon: "🚕" },
+  { amount: "500", category: "Food & Dining", note: "Food", label: "₹500 Food", icon: "🍔" },
+];
+
+const MAX_AMOUNT = 10_000_000; // Sensible upper bound: ₹1 Crore
 
 export function QuickAdd() {
   const { transactions, addTransaction } = useTransactions();
+  const { budgets } = useBudgets();
+
   const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("Food & Dining");
   const [note, setNote] = useState("");
-  const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0]);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [success, setSuccess] = useState<{ amount: number; category: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [validationError, setValidationError] = useState("");
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [lastSuccess, setLastSuccess] = useState<{
+    amount: string;
+    categoryLabel: string;
+  } | null>(null);
 
-  const today = localDateString(new Date());
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const userInteractedRef = useRef(false);
+
+  // Derive categories from app base list + user's existing categories
   const categories = useMemo(() => {
-    const fromTransactions = transactions.filter(isExpense).map((transaction) => transaction.category.trim()).filter(Boolean);
-    return [...new Set([...EXPENSE_CATEGORIES, ...fromTransactions])];
-  }, [transactions]);
-  const recentExpenses = useMemo(
-    () => transactions.filter((transaction) => isExpense(transaction) && transaction.date === today).slice(0, 5),
-    [transactions, today],
-  );
+    const existingIds = new Set(BASE_CATEGORIES.map((c) => c.id));
+    const extra: QuickCategory[] = [];
 
+    budgets.forEach((b) => {
+      if (b.category && !existingIds.has(b.category)) {
+        existingIds.add(b.category);
+        extra.push({ id: b.category, label: b.category, icon: "🏷️" });
+      }
+    });
+
+    transactions.forEach((t) => {
+      if (t.category && !existingIds.has(t.category) && t.type !== "income") {
+        existingIds.add(t.category);
+        extra.push({ id: t.category, label: t.category, icon: "🏷️" });
+      }
+    });
+
+    return [...BASE_CATEGORIES, ...extra];
+  }, [budgets, transactions]);
+
+  // Online / offline status tracking
   useEffect(() => {
-    if (category && !categories.includes(category)) setCategory(categories[0] ?? "Other");
-  }, [categories, category]);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Autofocus amount on mount without stealing focus after interaction
   useEffect(() => {
-    if (!success) return;
-    const timeout = window.setTimeout(() => setSuccess(null), 2600);
-    return () => window.clearTimeout(timeout);
-  }, [success]);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedAmount = amount.trim();
-    if (!/^\d+(?:\.\d{1,2})?$/.test(normalizedAmount)) {
-      setError("Enter an amount using up to two decimal places.");
-      return;
+    if (!userInteractedRef.current) {
+      const timer = setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 80);
+      return () => clearTimeout(timer);
     }
-    const parsedAmount = Number(normalizedAmount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > MAX_AMOUNT) {
-      setError(`Enter an amount greater than ₹0 and no more than ${formatCurrency(MAX_AMOUNT)}.`);
-      return;
-    }
+  }, []);
 
-    setBusy(true);
-    setError("");
-    try {
-      await addTransaction({ type: "expense", amount: parsedAmount, category, description: note.trim() || category, paymentMethod: "UPI", date: today });
-      setSuccess({ amount: parsedAmount, category });
-      setAmount("");
-      setNote("");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to save this expense. Try again.");
-    } finally {
-      setBusy(false);
+  // Auto-dismiss success notification after 5 seconds
+  useEffect(() => {
+    if (!lastSuccess) return;
+    const timer = setTimeout(() => {
+      setLastSuccess(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [lastSuccess]);
+
+  // Handle amount change with strict numeric & decimal validation
+  function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    userInteractedRef.current = true;
+    const raw = e.target.value.replace(/,/g, "");
+    if (raw === "" || /^\d+(\.\d{0,2})?$/.test(raw)) {
+      setAmount(raw);
+      if (saveError) setSaveError("");
+      if (validationError) setValidationError("");
+      if (lastSuccess) setLastSuccess(null);
     }
   }
 
+  // Handle quick presets
+  function applyPreset(preset: typeof QUICK_PRESETS[number]) {
+    userInteractedRef.current = true;
+    setAmount(preset.amount);
+    setCategory(preset.category);
+    setNote(preset.note);
+    if (saveError) setSaveError("");
+    if (validationError) setValidationError("");
+    if (lastSuccess) setLastSuccess(null);
+  }
+
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    userInteractedRef.current = true;
+
+    // Prevent duplicate submission
+    if (saving) return;
+
+    if (!isOnline) {
+      setSaveError("You're offline. Reconnect to save this expense.");
+      return;
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || !isFinite(parsedAmount) || parsedAmount <= 0) {
+      setValidationError("Enter a valid expense amount greater than ₹0.");
+      return;
+    }
+
+    if (parsedAmount > MAX_AMOUNT) {
+      setValidationError("Amount must be ₹10,000,000 or less.");
+      return;
+    }
+
+    setSaving(true);
+    setSaveError("");
+    setValidationError("");
+
+    try {
+      const recordedCategory = category;
+      const recordedDesc = note.trim() || recordedCategory;
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      await addTransaction({
+        type: "expense",
+        amount: parsedAmount,
+        category: recordedCategory,
+        description: recordedDesc,
+        paymentMethod: "UPI",
+        date: todayIso,
+      });
+
+      const matchedCategory = categories.find((c) => c.id === recordedCategory);
+      setLastSuccess({
+        amount: parsedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 }),
+        categoryLabel: matchedCategory?.label || recordedCategory,
+      });
+
+      // Clear input fields immediately for next expense
+      setAmount("");
+      setNote("");
+
+      // Refocus input immediately for subsequent entry
+      setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 50);
+    } catch {
+      setSaveError("Couldn't save this expense. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Filter recent expenses (latest 5, with today's prioritized)
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const recentExpenses = useMemo(() => {
+    return transactions
+      .filter((t) => t.type !== "income")
+      .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
+      .slice(0, 5);
+  }, [transactions]);
+
+  const hasExpensesToday = recentExpenses.some((t) => t.date === todayIso);
+
+  // Helper to find category icon
+  const getCategoryIcon = (catName: string, desc?: string) => {
+    if (desc && desc.toLowerCase().includes("coffee")) return "☕";
+    const match = BASE_CATEGORIES.find((c) => c.id === catName);
+    return match ? match.icon : "🏷️";
+  };
+
+  const parsedAmount = parseFloat(amount);
+  const isValidAmount = !isNaN(parsedAmount) && isFinite(parsedAmount) && parsedAmount > 0;
+
   return (
-    <main className="quick-add-page">
-      <div className="quick-add-wrap">
-        <header className="quick-add-header">
-          <Link to="/dashboard" className="quick-add-brand" aria-label="Financial Observatory dashboard">
-            <span className="quick-add-mark"><ObservatoryMark size={23} /></span>
-            <span><strong>Financial Observatory</strong><small>QUICK ADD</small></span>
+    <div className="quick-page-shell">
+      {/* Ambient atmospheric glow */}
+      <div className="quick-ambient-glow" />
+
+      <div className="quick-content-wrapper">
+        {/* Navigation Bar */}
+        <header className="quick-nav-header">
+          <Link to="/dashboard" className="quick-back-button" aria-label="Return to Observatory">
+            <ArrowLeft size={15} />
+            <span>Observatory</span>
           </Link>
-          <Link className="quick-add-dashboard-link" to="/dashboard">Dashboard</Link>
+          <div className="quick-header-tag">
+            <span className="dot" />
+            <span>PWA UTILITY</span>
+          </div>
         </header>
 
-        <section className="quick-add-card" aria-labelledby="quick-add-title">
-          <div className="quick-add-title-row">
-            <div><div className="eyebrow"><Activity size={13} /> MONEY OUT</div><h1 id="quick-add-title">Add an expense</h1></div>
-            <span className="quick-add-today">Today</span>
+        {/* Optional subtle PWA Install Banner */}
+        <PwaInstallPrompt />
+
+        {/* Offline Banner */}
+        {!isOnline && (
+          <div className="quick-offline-alert" role="alert">
+            <WifiOff size={15} />
+            <span>You're offline. Reconnect to save this expense.</span>
+          </div>
+        )}
+
+        {/* Success Feedback Banner */}
+        {lastSuccess && (
+          <div className="quick-success-banner animate-slide-up" role="status" aria-live="polite">
+            <div className="quick-success-icon-wrap">
+              <Check size={16} strokeWidth={3} />
+            </div>
+            <div className="quick-success-info">
+              <strong className="quick-success-title">✓ Expense added</strong>
+              <span className="quick-success-meta">
+                ₹{lastSuccess.amount} · {lastSuccess.categoryLabel}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Main Quick Add Utility Card */}
+        <div className="observatory-card quick-main-card">
+          <div className="quick-card-header">
+            <div className="eyebrow" style={{ margin: 0 }}>FINANCIAL OBSERVATORY</div>
+            <h1 className="quick-card-title">Quick Add</h1>
           </div>
 
-          <form onSubmit={(event) => void handleSubmit(event)} noValidate>
-            <label className="sr-only" htmlFor="quick-add-amount">Amount in Indian rupees</label>
-            <div className="quick-add-amount-wrap">
-              <span aria-hidden="true">₹</span>
-              <input id="quick-add-amount" className="quick-add-amount" type="text" inputMode="decimal" autoComplete="off" placeholder="0" value={amount} aria-invalid={Boolean(error)} aria-describedby={error ? "quick-add-error" : "quick-add-amount-help"} onChange={(event) => { setAmount(event.target.value); setError(""); }} />
-            </div>
-            <p id="quick-add-amount-help" className="quick-add-hint">Amount in Indian rupees</p>
+          <form onSubmit={handleSubmit} className="quick-entry-form" noValidate>
+            {/* Validation / Server Error Alert */}
+            {(saveError || validationError) && (
+              <div className="quick-error-alert" role="alert">
+                <AlertCircle size={15} />
+                <span>{saveError || validationError}</span>
+              </div>
+            )}
 
-            <fieldset className="quick-add-category-fieldset">
-              <legend>Choose a category</legend>
-              <div className="quick-add-categories">
-                {categories.map((item) => {
-                  const Icon = categoryIcons[item] ?? BriefcaseBusiness;
-                  return <button key={item} type="button" className={`quick-add-category${category === item ? " selected" : ""}`} aria-pressed={category === item} onClick={() => setCategory(item)}>
-                    <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{item}</span>
-                  </button>;
+            {/* Dominant Hero Amount Display */}
+            <div
+              className="quick-amount-hero"
+              onClick={() => amountInputRef.current?.focus()}
+              role="presentation"
+            >
+              <div className="quick-amount-currency" aria-hidden="true">
+                ₹
+              </div>
+              <input
+                ref={amountInputRef}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                autoFocus
+                placeholder="0"
+                value={amount}
+                onChange={handleAmountChange}
+                disabled={saving}
+                className="quick-amount-input"
+                aria-label="Expense amount in Indian Rupees"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            </div>
+
+            {/* Quick Presets */}
+            <div className="quick-presets-row" role="group" aria-label="Quick Presets">
+              {QUICK_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="quick-preset-pill"
+                >
+                  <span>{preset.icon}</span>
+                  <span>{preset.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Category Selection Grid */}
+            <div className="quick-category-container">
+              <div className="quick-field-label">
+                <span>CATEGORY</span>
+                {category && (
+                  <span className="quick-selected-hint">
+                    {categories.find((c) => c.id === category)?.label || category}
+                  </span>
+                )}
+              </div>
+
+              <div
+                className="quick-category-grid"
+                role="radiogroup"
+                aria-label="Select expense category"
+              >
+                {categories.map((cat) => {
+                  const isSelected = category === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`quick-category-chip ${isSelected ? "selected" : ""}`}
+                      onClick={() => {
+                        userInteractedRef.current = true;
+                        setCategory(cat.id);
+                      }}
+                    >
+                      <span className="quick-chip-icon" aria-hidden="true">
+                        {cat.icon}
+                      </span>
+                      <span className="quick-chip-label">{cat.label}</span>
+                    </button>
+                  );
                 })}
               </div>
-            </fieldset>
+            </div>
 
-            <label className="quick-add-note-label" htmlFor="quick-add-note">What was it? <span>Optional</span></label>
-            <input id="quick-add-note" className="quick-add-note" type="text" maxLength={120} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Lunch, metro, groceries…" />
+            {/* Optional Note ("What was it?") */}
+            <div className="quick-note-section">
+              <label htmlFor="quick-note-input" className="quick-field-label">
+                <span>WHAT WAS IT? (OPTIONAL)</span>
+              </label>
+              <input
+                id="quick-note-input"
+                type="text"
+                value={note}
+                onChange={(e) => {
+                  userInteractedRef.current = true;
+                  setNote(e.target.value);
+                }}
+                placeholder="e.g. Lunch, Uber, Groceries"
+                className="quick-note-input"
+                maxLength={80}
+                disabled={saving}
+                autoComplete="off"
+              />
+            </div>
 
-            {error && <p id="quick-add-error" className="quick-add-error" role="alert">{error}</p>}
-            <button className="quick-add-submit" type="submit" disabled={busy}>{busy ? <><span className="quick-add-spinner" aria-hidden="true" /> Saving expense…</> : "+ Add Expense"}</button>
+            {/* Primary Action Button */}
+            <button
+              type="submit"
+              className="button button-primary quick-submit-btn"
+              disabled={saving || !isValidAmount || !isOnline}
+              aria-busy={saving}
+            >
+              {saving ? (
+                <span>Adding expense…</span>
+              ) : (
+                <>
+                  <Plus size={18} strokeWidth={2.5} />
+                  <span>Add Expense</span>
+                </>
+              )}
+            </button>
           </form>
-        </section>
-
-        <section className="quick-add-recent" aria-labelledby="quick-add-recent-title">
-          <div className="quick-add-recent-heading"><h2 id="quick-add-recent-title">Today</h2><span>{recentExpenses.length} {recentExpenses.length === 1 ? "expense" : "expenses"}</span></div>
-          {recentExpenses.length ? <ul>{recentExpenses.map((transaction) => {
-            const Icon = categoryIcons[transaction.category] ?? WalletCards;
-            return <li key={transaction.id}><span className="quick-add-recent-icon"><Icon size={17} aria-hidden="true" /></span><span className="quick-add-recent-description"><strong>{transaction.description || transaction.category}</strong><small>{transaction.category}</small></span><strong className="quick-add-recent-amount">{formatCurrency(transaction.amount)}</strong></li>;
-          })}</ul> : <p className="quick-add-empty">Your expenses for today will show up here.</p>}
-          <Link to="/ledger" className="quick-add-ledger-link">View all transactions <span aria-hidden="true">→</span></Link>
-        </section>
-
-        <div className="quick-add-success" role="status" aria-live="polite" aria-atomic="true">
-          {success && <><span className="quick-add-success-check" aria-hidden="true">✓</span><span><strong>Expense added</strong><small>{formatCurrency(success.amount)} · {success.category}</small></span></>}
         </div>
+
+        {/* Recent Expenses List */}
+        <section className="quick-recent-section" aria-label="Recent expenses">
+          <div className="quick-recent-header">
+            <span className="eyebrow" style={{ margin: 0 }}>
+              {hasExpensesToday ? "TODAY" : "RECENT EXPENSES"}
+            </span>
+            <span className="quick-recent-count">{recentExpenses.length} entries</span>
+          </div>
+
+          {recentExpenses.length === 0 ? (
+            <div className="quick-recent-empty">
+              <span>No recorded expenses yet. Add your first expense above.</span>
+            </div>
+          ) : (
+            <div className="quick-recent-list">
+              {recentExpenses.map((t) => (
+                <div key={t.id} className="quick-recent-item">
+                  <div className="quick-recent-item-left">
+                    <span className="quick-recent-icon" aria-hidden="true">
+                      {getCategoryIcon(t.category, t.description)}
+                    </span>
+                    <div className="quick-recent-item-info">
+                      <span className="quick-recent-name">{t.description || t.category}</span>
+                      <span className="quick-recent-date">
+                        {t.date === todayIso ? "Today" : t.date}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="quick-recent-amount">
+                    <span>−{formatCurrency(t.amount)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="quick-view-all-wrapper">
+            <Link to="/ledger" className="quick-view-all-link">
+              View all transactions →
+            </Link>
+          </div>
+        </section>
       </div>
-    </main>
+    </div>
   );
 }

@@ -2,8 +2,7 @@
   "name": "Financial Observatory",
   "short_name": "Observatory",
   "description": "A clearer view of your money.",
-  "id": "/quick-add",
-  "start_url": "/quick-add",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#101114",
@@ -13,5 +12,16 @@
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Add Expense",
+      "short_name": "Quick Add",
+      "description": "Log an expense in 5 seconds",
+      "url": "/quick-add",
+      "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
   ]
 }

@@ -1,56 +1,63 @@
-import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
-
-interface InstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-}
-
-const DISMISSED_KEY = "financial-observatory:pwa-install-dismissed";
+import { useState } from "react";
+import { Download } from "lucide-react";
+import { usePwaInstall } from "../utils/usePwaInstall";
 
 export function PwaInstallPrompt() {
-  const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const { canInstall, installApp } = usePwaInstall();
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("fo_pwa_install_dismissed") === "true";
+    } catch {
+      return false;
+    }
+  });
 
-  useEffect(() => {
-    try { setDismissed(localStorage.getItem(DISMISSED_KEY) === "true"); } catch { setDismissed(false); }
-    const media = window.matchMedia("(max-width: 767px)");
-    const updateMobile = () => setIsMobile(media.matches);
-    updateMobile();
-    media.addEventListener("change", updateMobile);
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setInstallEvent(event as InstallPromptEvent);
-    };
-    const onInstalled = () => setInstallEvent(null);
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      media.removeEventListener("change", updateMobile);
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
+  if (!canInstall || dismissed) return null;
 
-  function dismiss() {
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem("fo_pwa_install_dismissed", "true");
+    } catch {
+      // storage unavailable
+    }
     setDismissed(true);
-    try { localStorage.setItem(DISMISSED_KEY, "true"); } catch { /* Storage can be unavailable in private browsing. */ }
-  }
+  };
 
-  async function install() {
-    if (!installEvent) return;
-    await installEvent.prompt();
-    const choice = await installEvent.userChoice;
-    setInstallEvent(null);
-    if (choice.outcome === "dismissed") dismiss();
-  }
+  const handleInstall = async () => {
+    await installApp();
+  };
 
-  if (!isMobile || dismissed || !installEvent) return null;
-  return <aside className="pwa-install-prompt" aria-label="Install Financial Observatory">
-    <span className="pwa-install-icon"><Download size={17} aria-hidden="true" /></span>
-    <span className="pwa-install-copy"><strong>Add Financial Observatory</strong><small>Quick Add from your home screen</small></span>
-    <button className="pwa-install-action" type="button" onClick={() => void install()}>Install</button>
-    <button className="pwa-install-dismiss" type="button" onClick={dismiss} aria-label="Not now"><X size={17} /></button>
-  </aside>;
+  return (
+    <aside
+      className="pwa-install-banner animate-slide-up"
+      role="region"
+      aria-label="Install Financial Observatory application"
+    >
+      <div className="pwa-install-content">
+        <div className="pwa-install-icon">
+          <Download size={16} />
+        </div>
+        <div className="pwa-install-text">
+          <strong>Install Financial Observatory</strong>
+          <p>Add Quick Add to your home screen for faster expense tracking.</p>
+        </div>
+      </div>
+      <div className="pwa-install-actions">
+        <button
+          type="button"
+          onClick={handleInstall}
+          className="button button-primary pwa-install-btn"
+        >
+          Install
+        </button>
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="button button-ghost pwa-dismiss-btn"
+        >
+          Not now
+        </button>
+      </div>
+    </aside>
+  );
 }

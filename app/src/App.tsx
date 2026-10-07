@@ -18,6 +18,7 @@ import { Ledger } from "./pages/Ledger";
 import { Prediction } from "./pages/Prediction";
 import { Settings } from "./pages/Settings";
 import { AddExpense } from "./pages/AddExpense";
+import { QuickAdd } from "./pages/QuickAdd";
 import { TransactionSuccess } from "./pages/TransactionSuccess";
 import { Navbar } from "./components/Navbar";
 import { QuickAddModal } from "./components/QuickAddModal";
