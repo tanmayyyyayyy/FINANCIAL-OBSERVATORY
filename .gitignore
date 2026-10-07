@@ -21,6 +21,8 @@ pnpm-debug.log*
 .env.*.local
 .env.*
 !.env.example
+extension/firebase-config.js
+!extension/firebase-config.example.js
 
 # Temporary / OS files
 .DS_Store

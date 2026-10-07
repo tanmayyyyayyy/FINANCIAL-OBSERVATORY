@@ -11,15 +11,15 @@ Add expenses directly from the browser in seconds.
 - Instant success feedback
 - Dark UI matching the main app
 
-## Local Installation (Developer Mode)
+## Setup & Installation (Developer Mode)
 
-No build step required. Load directly from this directory.
-
-1. Open Chrome and navigate to `chrome://extensions`
-2. Enable **Developer mode** (toggle in the top right)
-3. Click **Load unpacked**
-4. Select this directory: `extension/`
-5. The Financial Observatory icon appears in your toolbar
+1. Ensure your Firebase configuration exists in `app/.env`.
+2. Run `npm run build:extension` (from `app/`) to bundle Firebase locally and generate `extension/firebase-config.js`.
+3. Open Chrome and navigate to `chrome://extensions`
+4. Enable **Developer mode** (toggle in the top right)
+5. Click **Load unpacked**
+6. Select this directory: `extension/`
+7. The Financial Observatory icon appears in your toolbar
 
 ## Usage
 
