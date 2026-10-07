@@ -26,7 +26,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { AskYourMoney } from "./components/AskYourMoney";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import type { TransactionType } from "./types";
-import { QuickAdd } from "./pages/QuickAdd";
 
 import "./index.css";
 
