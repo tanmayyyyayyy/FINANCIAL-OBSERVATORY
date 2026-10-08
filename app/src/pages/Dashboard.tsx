@@ -33,6 +33,7 @@ import { Sparkles } from "lucide-react";
 import { calculateFinancialSignals } from "../utils/insights";
 import { generateWeeklyInsight } from "../firebase/ai";
 import { useAiPreferences } from "../context/AiPreferencesContext";
+import { AnimatedButton, BorderBeam } from "@/components/ui";
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
@@ -133,14 +134,14 @@ export function Dashboard() {
                 <Mic size={13} />
                 <span>Voice Entry</span>
               </button>
-              <button
+              <AnimatedButton
                 type="button"
                 className="button button-primary"
                 onClick={() => openQuickAdd()}
               >
                 <Plus size={13} strokeWidth={2.5} />
                 <span>Add transaction</span>
-              </button>
+              </AnimatedButton>
             </div>
           </div>
 
@@ -203,6 +204,7 @@ export function Dashboard() {
               subtext="vs previous month to date"
               trend={trend(comparison.balanceChange)}
               icon={<Wallet size={14} />}
+              highlight
             />
             <MetricCard
               label="Money Out"
@@ -234,7 +236,14 @@ export function Dashboard() {
             />
           </section>
 
-          <section className="dashboard-insights" aria-labelledby="insights-title">
+          <section className="dashboard-insights relative overflow-hidden" aria-labelledby="insights-title">
+            <BorderBeam
+              size={200}
+              duration={14}
+              borderWidth={1}
+              colorFrom="rgba(99, 102, 241, 0.35)"
+              colorTo="rgba(168, 85, 247, 0.15)"
+            />
             <div className="dashboard-insights-head"><div><div className="eyebrow">YOUR RECENT ACTIVITY</div><h2 id="insights-title">Weekly money check-in</h2></div><div className="dashboard-insight-actions"><button type="button" className="button button-secondary" onClick={openAskYourMoney}>Ask your money</button>{aiEnabled && <button type="button" className="button button-secondary" onClick={() => void loadWeeklyInsight()} disabled={insightBusy}><Sparkles size={14} />{insightBusy ? "Summarizing…" : "Explain my week"}</button>}</div></div>
             <div className="dashboard-insights-grid">
               <div><span>Money out this week</span><strong>{formatCurrency(signals.weeklyExpenses)}</strong><small>{signals.previousWeekExpenses > 0 ? `${signals.weeklyExpenses > signals.previousWeekExpenses ? "Up" : "Down"} ${formatCurrency(Math.abs(signals.weeklyExpenses - signals.previousWeekExpenses))} from last week` : "Compared with your previous 7 days"}</small></div>
@@ -245,7 +254,20 @@ export function Dashboard() {
             {signals.unusual.map((transaction) => <p className="signal-alert" key={`unusual-${transaction.id}`}>Check {transaction.description || transaction.category} · {formatCurrency(transaction.amount)} is much higher than your past {transaction.category} entries.</p>)}
             {signals.duplicates.map((group) => <p className="signal-alert" key={`duplicate-${group[0].id}`}>Possible duplicate: {group[0].description || group[0].category} · {formatCurrency(group[0].amount)} on {formatDate(group[0].date)}. Review it in Transactions.</p>)}
             {signals.recurring.length > 0 && <div className="signal-recurring"><strong>Possible regular payments</strong>{signals.recurring.map((item) => <span key={item.merchant}>{item.merchant} · about {formatCurrency(item.amount)} every {item.intervalDays >= 26 ? "month" : "week"}</span>)}</div>}
-            {weeklyInsight && <div className="ai-weekly-summary"><strong>AI explanation</strong><p>{weeklyInsight.summary}</p>{weeklyInsight.suggestions.map((item) => <p key={item}>• {item}</p>)}</div>}
+            {weeklyInsight && (
+              <div className="ai-weekly-summary relative overflow-hidden">
+                <BorderBeam
+                  size={140}
+                  duration={9}
+                  borderWidth={1.5}
+                  colorFrom="var(--accent-pos)"
+                  colorTo="rgba(99, 102, 241, 0.5)"
+                />
+                <strong>AI explanation</strong>
+                <p>{weeklyInsight.summary}</p>
+                {weeklyInsight.suggestions.map((item) => <p key={item}>• {item}</p>)}
+              </div>
+            )}
             {insightError && <p role="alert" className="signal-error">{insightError}</p>}
           </section>
 

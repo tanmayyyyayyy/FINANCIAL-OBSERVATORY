@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 interface MetricCardProps {
   label: string;
@@ -14,6 +15,7 @@ interface MetricCardProps {
     isNegative?: boolean;
   };
   icon?: ReactNode;
+  highlight?: boolean;
 }
 
 export function MetricCard({
@@ -25,38 +27,29 @@ export function MetricCard({
   icon,
   numericValue,
   formatValue,
+  highlight,
 }: MetricCardProps) {
-  const [animatedValue, setAnimatedValue] = useState(numericValue ?? 0);
-  useEffect(() => {
-    if (numericValue === undefined || !formatValue) return;
-    const target = Number.isFinite(numericValue) ? numericValue : 0;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setAnimatedValue(target);
-      return;
-    }
-    let frame = 0;
-    let start = 0;
-    const from = 0;
-    const duration = 650;
-    const tick = (timestamp: number) => {
-      if (!start) start = timestamp;
-      const progress = Math.min(1, (timestamp - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimatedValue(from + (target - from) * eased);
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [numericValue, formatValue]);
-  const displayValue = numericValue !== undefined && formatValue ? formatValue(animatedValue) : value;
+  const displayValue = numericValue !== undefined && formatValue ? formatValue(numericValue) : value;
+
   return (
-    <div className="metric-column">
+    <div className={`metric-column ${highlight ? "relative" : ""}`}>
+      {highlight && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-3 rounded-2xl opacity-60 -z-10"
+          style={{
+            background: "radial-gradient(180px circle at 50% 25%, rgba(99, 102, 241, 0.12), transparent 70%)",
+          }}
+        />
+      )}
       <div className="metric-header">
         <span className="metric-title" title={title}>{label}</span>
         {icon && <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>{icon}</div>}
       </div>
 
-      <div className="metric-value tabular-numbers" aria-live="off">{displayValue}</div>
+      <div className="metric-value tabular-numbers" aria-live="off">
+        <AnimatedNumber value={displayValue} />
+      </div>
 
       <div className="metric-footer">
         {trend && (
