@@ -78,25 +78,36 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       userId,
       transactions: [optimistic, ...(current.userId === userId ? current.transactions : [])],
     }));
-    try {
-      await setDoc(reference, {
-        ...storedTransaction,
-        createdAt,
+    setError(null);
+
+    setDoc(reference, {
+      ...storedTransaction,
+      createdAt,
+    })
+      .then(() => {
+        setSavedTransactions((current) =>
+          current.userId !== userId
+            ? current
+            : {
+                userId,
+                transactions: current.transactions.map((item) =>
+                  item.id === reference.id ? optimistic : item
+                ),
+              }
+        );
+      })
+      .catch((cause) => {
+        const message = firebaseErrorMessage(cause, "Unable to save this transaction.");
+        setSavedTransactions((current) =>
+          current.userId !== userId
+            ? current
+            : {
+                userId,
+                transactions: current.transactions.filter((item) => item.id !== reference.id),
+              }
+        );
+        setError(message);
       });
-      setSavedTransactions((current) => current.userId !== userId ? current : ({
-        userId,
-        transactions: current.transactions.map((item) => item.id === reference.id ? optimistic : item),
-      }));
-      setError(null);
-    } catch (cause) {
-      const message = firebaseErrorMessage(cause, "Unable to save this transaction.");
-      setSavedTransactions((current) => current.userId !== userId ? current : ({
-        userId,
-        transactions: current.transactions.filter((item) => item.id !== reference.id),
-      }));
-      setError(message);
-      throw new Error(message);
-    }
   }
 
   async function deleteTransaction(id: string) {

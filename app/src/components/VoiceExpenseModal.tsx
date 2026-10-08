@@ -89,6 +89,14 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
   /** Ref-based double-save guard (faster than waiting for setState). */
   const savingRef = useRef<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Focus trap
   useEffect(() => {
@@ -148,6 +156,28 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
       }
     };
   }, [isOpen, abortListening]);
+
+  const handleClose = useCallback(() => {
+    // If saving is actively in progress, prevent accidental close while commit is happening
+    if (savingRef.current && state !== "SUCCESS") return;
+
+    abortListening();
+    if (closingTimerRef.current !== null) {
+      clearTimeout(closingTimerRef.current);
+      closingTimerRef.current = null;
+    }
+    onClose();
+  }, [abortListening, onClose, state]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && isOpen) {
+        handleClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
 
   function startListening() {
     if (!isSupported) {
@@ -278,13 +308,17 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
         type: "expense",
       });
 
+      if (!isMountedRef.current) return;
       setState("SUCCESS");
       onSuccess?.();
       closingTimerRef.current = window.setTimeout(() => {
         closingTimerRef.current = null;
-        onClose();
+        if (isMountedRef.current) {
+          onClose();
+        }
       }, 1200);
     } catch (err: any) {
+      if (!isMountedRef.current) return;
       setErrorMessage(err?.message || "Failed to save transaction.");
       setSaving(false);
       savingRef.current = false;
@@ -299,8 +333,7 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          abortListening();
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -329,12 +362,15 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
           <button
             type="button"
             className="button-icon"
-            onClick={() => {
-              abortListening();
-              onClose();
-            }}
+            onClick={handleClose}
+            disabled={saving && state !== "SUCCESS"}
             aria-label="Close voice entry"
-            style={{ width: "32px", height: "32px" }}
+            style={{
+              width: "32px",
+              height: "32px",
+              opacity: saving && state !== "SUCCESS" ? 0.5 : 1,
+              cursor: saving && state !== "SUCCESS" ? "not-allowed" : "pointer",
+            }}
           >
             <X size={16} />
           </button>
@@ -638,6 +674,7 @@ export function VoiceExpenseModal({ isOpen, onClose, onSuccess }: VoiceExpenseMo
                   type="button"
                   className="button button-secondary"
                   onClick={startListening}
+                  disabled={saving}
                   style={{ flex: "0 0 auto", fontSize: "12.5px" }}
                 >
                   <Mic size={13} />
