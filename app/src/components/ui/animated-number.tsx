@@ -1,104 +1,37 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 function AnimatedNumber({ value, className }: { value: number | string, className?: string }) {
     const stringVal = value !== undefined && value !== null ? value.toString() : "";
-    return (
-        <div className={cn("inline-flex items-center", className)}>
-            <div className="flex relative items-center">
-                {stringVal.split("").map((digit, index) => (
-                    <SingleNumberHolder key={index} value={digit} index={index} />
-                ))}
-            </div>
-        </div>
-    )
-}
-
-function SingleNumberHolder({ value }: { value: string, index?: number }) {
     const reduceMotion = useReducedMotion();
-    const [height, setHeight] = useState<string | null>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const isDigit = /^[0-9]$/.test(value)
 
-    useEffect(() => {
-        if (containerRef.current) {
-            setHeight(getComputedStyle(containerRef.current).height)
-        }
-    }, [])
-
-    if (reduceMotion || !isDigit) {
-        return <span className="tabular-numbers">{value}</span>
+    if (reduceMotion) {
+        return (
+            <span
+                className={cn("inline-block whitespace-nowrap tabular-numbers", className)}
+                style={{ maxWidth: "100%", overflowX: "visible" }}
+            >
+                {stringVal}
+            </span>
+        )
     }
 
     return (
-        <div
-            className="relative tabular-numbers"
-            style={{ height: height || "auto", overflowY: "hidden", overflowX: "clip" }}
-            ref={containerRef}
+        <span
+            className={cn("inline-block whitespace-nowrap tabular-numbers", className)}
+            style={{ maxWidth: "100%", overflowX: "visible" }}
         >
-            <RenderStrip value={value} eleHeight={height} />
-        </div>
-    )
-}
-
-const zeroToNine = Array.from({ length: 10 }, (_, k) => k)
-
-function RenderStrip({ eleHeight, value }: { eleHeight: string | null, value: string }) {
-    const heightInNumber = Number.parseInt(eleHeight?.replace("px", "") || "48")
-    const negative = heightInNumber * -1
-    const pos = heightInNumber
-    const prev = useRef(value)
-
-    // Convert string values to numbers for comparison
-    const currentVal = parseInt(value)
-    const prevVal = parseInt(prev.current)
-
-    // Calculate direction based on value change
-    const diff = prevVal - currentVal
-    const dir = currentVal > prevVal ? pos * diff * -1 : negative * diff
-
-    // Update ref after calculation
-    useEffect(() => {
-        prev.current = value
-    }, [value])
-
-    return (
-        <AnimatePresence mode='wait'>
-            <motion.div
-                key={value}
-                initial={{ y: dir }}
-                animate={{ y: 0 }}
-                exit={{ y: 0, transition: { duration: 0.1 } }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className='flex relative flex-col'
+            <motion.span
+                key={stringVal}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="inline-block whitespace-nowrap"
             >
-                {/* Numbers smaller than current */}
-                <motion.span
-                    layout
-                    key={`negative-${value}`}
-                    className={cn('flex flex-col items-center absolute bottom-full left-0')}
-                >
-                    {zeroToNine.filter(val => val < currentVal).map((val, idx) => (
-                        <span key={`${val}_${idx}`}>{val}</span>
-                    ))}
-                </motion.span>
-
-                {/* Current Number */}
-                <span key={`current-${value}`}>{value}</span>
-
-                {/* Numbers larger than current */}
-                <motion.span
-                    layout
-                    key={`positive-${value}`}
-                    className={cn('flex flex-col items-center absolute top-full left-0')}
-                >
-                    {zeroToNine.filter(val => val > currentVal).map((val, idx) => (
-                        <span key={`${val}_${idx}`}>{val}</span>
-                    ))}
-                </motion.span>
-            </motion.div>
-        </AnimatePresence>
+                {stringVal}
+            </motion.span>
+        </span>
     )
 }
 
