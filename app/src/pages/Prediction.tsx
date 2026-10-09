@@ -107,7 +107,7 @@ export function Prediction() {
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
-            className="animate-slide-up"
+            className="page-hero animate-slide-up"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -180,22 +180,22 @@ export function Prediction() {
             </div>
 
             <div>
-              <div className="stat-label">AVERAGE SPENT PER DAY</div>
+              <div className="stat-label">SHARE OF BUDGET USED</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                 {(summary.totalBudget > 0 ? (simulatedProjectedSpend / summary.totalBudget) * 100 : 0).toFixed(1)}%
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                  Daily limit: {formatCurrency(summary.totalBudget)}
+                  Of {formatCurrency(summary.totalBudget)} planned this month
               </div>
             </div>
 
             <div>
                 <div className="stat-label">ESTIMATE CONFIDENCE</div>
               <div style={{ fontSize: "28px", fontWeight: 600, color: "var(--accent-pos)", marginTop: "6px", letterSpacing: "-0.03em" }}>
-                {forecast.confidence === "low" ? "Needs more data" : forecast.confidence === "medium" ? "Building" : "More history"}
+                {forecast.confidence === "low" ? "Low" : forecast.confidence === "medium" ? "Medium" : "High"}
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
-                {forecast.confidence === "low" ? "Add more spending for a better estimate" : "Based on your recorded spending history"}
+                {forecast.confidence === "low" ? "Add more expenses for a steadier estimate" : forecast.confidence === "medium" ? "Forming from recent spending" : "Based on a consistent spending history"}
               </div>
             </div>
           </div>
@@ -239,7 +239,7 @@ export function Prediction() {
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--accent-neg)" }}>
                   <span style={{ width: "12px", height: "2px", background: "var(--accent-neg)", display: "inline-block" }} />
-                  Daily limit
+                  Monthly budget
                 </span>
               </div>
             </div>

@@ -22,6 +22,9 @@ export function Budgets() {
     return computeFinancialSummary(transactions, budgets, profile.monthlyIncome, profile.monthlyBudget);
   }, [transactions, budgets, profile.monthlyIncome, profile.monthlyBudget]);
 
+  const hasBudget = summary.totalBudget > 0;
+  const overBudget = hasBudget && summary.totalSpent > summary.totalBudget;
+
   function handleSaveLimit(category: string) {
     const parsed = parseFloat(newLimitValue);
     if (!isNaN(parsed) && parsed >= 0) {
@@ -66,7 +69,7 @@ export function Budgets() {
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
-            className="animate-slide-up"
+            className="page-hero animate-slide-up"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -133,39 +136,97 @@ export function Budgets() {
                 <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", marginTop: "6px", letterSpacing: "-0.03em" }}>
                   {formatCurrency(summary.totalSpent)}
                 </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: summary.budgetUtilization > 100 ? "var(--accent-neg)" : "var(--accent-pos)",
-                    marginTop: "3px",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  {summary.budgetUtilization.toFixed(1)}% of your total budget
-                </div>
+                {hasBudget ? (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: summary.budgetUtilization > 100 ? "var(--accent-neg)" : "var(--accent-pos)",
+                      marginTop: "3px",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {summary.budgetUtilization.toFixed(1)}% of your total budget
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "rgba(255, 255, 255, 0.36)",
+                      marginTop: "3px",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    No limits configured — add one to compare
+                  </div>
+                )}
               </div>
 
               <div>
                 <div className="stat-label">LEFT TO SPEND</div>
-                <div
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: 600,
-                    color: summary.totalBudget >= summary.totalSpent ? "#ffffff" : "var(--accent-neg)",
-                    marginTop: "6px",
-                    letterSpacing: "-0.03em",
-                  }}
-                >
-                  {formatCurrency(Math.max(0, summary.totalBudget - summary.totalSpent))}
-                </div>
-                <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.36)", marginTop: "3px", fontFamily: "var(--font-mono)" }}>
-                  Available this month
-                </div>
+                {!hasBudget ? (
+                  <>
+                    <div
+                      style={{
+                        fontSize: "28px",
+                        fontWeight: 600,
+                        color: "rgba(255, 255, 255, 0.42)",
+                        marginTop: "6px",
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      Not set
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "rgba(255, 255, 255, 0.36)",
+                        marginTop: "3px",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      No category limits configured yet
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        fontSize: "28px",
+                        fontWeight: 600,
+                        color: overBudget ? "var(--accent-neg)" : "#ffffff",
+                        marginTop: "6px",
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {formatCurrency(Math.max(0, summary.totalBudget - summary.totalSpent))}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: overBudget ? "var(--accent-neg)" : "rgba(255, 255, 255, 0.36)",
+                        marginTop: "3px",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {overBudget
+                        ? `${formatCurrency(summary.totalSpent - summary.totalBudget)} over this month's budget`
+                        : "Available this month"}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Master Envelope Bar */}
-            <div className="progress-track" style={{ height: "4px", margin: 0 }}>
+            <div
+              className="progress-track"
+              style={{ height: "4px", margin: 0 }}
+              role="progressbar"
+              aria-label="Total budget used"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(Math.min(summary.budgetUtilization, 100))}
+            >
               <div
                 className="progress-fill"
                 style={{
@@ -222,6 +283,7 @@ export function Budgets() {
                           <div style={{ display: "flex", gap: "6px" }}>
                             <input
                               type="number"
+                              aria-label={`${budget.category} budget limit`}
                               value={newLimitValue}
                               onChange={(e) => setNewLimitValue(e.target.value)}
                               style={{ width: "80px", padding: "3px 6px", fontSize: "11.5px" }}
@@ -251,7 +313,8 @@ export function Budgets() {
                               type="button"
                               className="button-icon"
                               style={{ width: "24px", height: "24px" }}
-                              title="Calibrate Limit"
+                              title="Edit limit"
+                              aria-label={`Edit ${budget.category} budget limit`}
                               onClick={() => {
                                 setEditingCategory(budget.category);
                                 setNewLimitValue(budget.limit.toString());

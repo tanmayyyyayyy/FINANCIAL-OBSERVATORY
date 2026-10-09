@@ -88,7 +88,7 @@ export function Onboarding() {
       }}
     >
       <div
-        className="observatory-card animate-fade-in"
+        className="observatory-card page-hero animate-fade-in"
         style={{
           width: "100%",
           maxWidth: "540px",
@@ -265,7 +265,7 @@ export function Onboarding() {
                 style={{ flex: 2, padding: "12px" }}
                 onClick={() => goToStep(3)}
               >
-                <span>Confirm Tracks</span>
+                <span>Continue</span>
                 <ArrowRight size={14} />
               </button>
             </div>

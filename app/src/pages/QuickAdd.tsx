@@ -256,7 +256,7 @@ export function QuickAdd() {
         )}
 
         {/* Main Quick Add Utility Card */}
-        <div className="observatory-card quick-main-card">
+        <div className="observatory-card quick-main-card page-hero">
           <div className="quick-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div className="eyebrow" style={{ margin: 0 }}>FINANCIAL OBSERVATORY</div>
@@ -270,7 +270,7 @@ export function QuickAdd() {
               style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
               <Mic size={14} />
-              <span>🎙 Voice</span>
+              <span>Voice</span>
             </button>
           </div>
 

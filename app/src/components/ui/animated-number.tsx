@@ -10,7 +10,7 @@ function AnimatedNumber({ value, className }: { value: number | string, classNam
         return (
             <span
                 className={cn("inline-block whitespace-nowrap tabular-numbers", className)}
-                style={{ maxWidth: "100%", overflowX: "visible" }}
+                style={{ display: "inline-block", whiteSpace: "nowrap", maxWidth: "100%", overflowX: "visible" }}
             >
                 {stringVal}
             </span>
@@ -20,7 +20,7 @@ function AnimatedNumber({ value, className }: { value: number | string, classNam
     return (
         <span
             className={cn("inline-block whitespace-nowrap tabular-numbers", className)}
-            style={{ maxWidth: "100%", overflowX: "visible" }}
+            style={{ display: "inline-block", whiteSpace: "nowrap", maxWidth: "100%", overflowX: "visible" }}
         >
             <motion.span
                 key={stringVal}
@@ -28,6 +28,7 @@ function AnimatedNumber({ value, className }: { value: number | string, classNam
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 className="inline-block whitespace-nowrap"
+                style={{ display: "inline-block", whiteSpace: "nowrap" }}
             >
                 {stringVal}
             </motion.span>

@@ -110,7 +110,7 @@ export function Settings() {
       <main id="main-content" tabIndex={-1} className="content-wrapper">
         <div className="app-container" style={{ paddingTop: "40px", maxWidth: "860px" }}>
           {/* Header */}
-          <div className="animate-slide-up" style={{ marginBottom: "36px" }}>
+          <div className="page-hero animate-slide-up" style={{ marginBottom: "36px" }}>
             <div className="eyebrow">
               <span className="dot" />
               <span>YOUR ACCOUNT</span>
@@ -239,6 +239,7 @@ export function Settings() {
                         lineHeight: 1,
                       }}
                       title={`Remove ${cat}`}
+                      aria-label={`Remove ${cat}`}
                     >
                       ×
                     </button>
@@ -252,6 +253,7 @@ export function Settings() {
               >
                 <input
                   type="text"
+                  aria-label="New category name"
                   placeholder="New category name"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}

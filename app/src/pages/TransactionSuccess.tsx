@@ -44,7 +44,7 @@ export function TransactionSuccess() {
       />
 
       <div
-        className="observatory-card animate-slide-up"
+        className="observatory-card page-hero animate-slide-up"
         style={{
           width: "100%",
           maxWidth: "460px",
@@ -122,9 +122,9 @@ export function TransactionSuccess() {
           >
             <span style={{ color: "rgba(255, 255, 255, 0.4)", display: "flex", alignItems: "center", gap: "6px" }}>
               <ShieldCheck size={12} color="var(--accent-pos)" />
-              STATE VERIFICATION
+              SAVED TO YOUR ACCOUNT
             </span>
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>SYNCHRONIZED</span>
+            <span style={{ color: "#ffffff", fontWeight: 600 }}>SYNCED</span>
           </div>
 
           <div
@@ -138,9 +138,9 @@ export function TransactionSuccess() {
           >
             <span style={{ color: "rgba(255, 255, 255, 0.4)", display: "flex", alignItems: "center", gap: "6px" }}>
               <Activity size={12} color="rgba(255, 255, 255, 0.5)" />
-              TELEMETRY ENGINE
+              LEDGER
             </span>
-            <span style={{ color: "var(--accent-pos)" }}>0ms LATENCY</span>
+            <span style={{ color: "var(--accent-pos)" }}>UPDATED</span>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export function TransactionSuccess() {
             className="button button-primary"
             style={{ width: "100%", padding: "12px", justifyContent: "center" }}
           >
-            <span>Return to Observatory</span>
+            <span>Back to dashboard</span>
             <ArrowRight size={14} />
           </Link>
 
@@ -160,7 +160,7 @@ export function TransactionSuccess() {
             style={{ width: "100%", padding: "12px", justifyContent: "center" }}
           >
             <Plus size={14} />
-            <span>Record Another Movement</span>
+            <span>Add another expense</span>
           </Link>
         </div>
       </div>

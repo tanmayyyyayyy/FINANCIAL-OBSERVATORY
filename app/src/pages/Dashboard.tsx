@@ -10,6 +10,8 @@ import {
   Plus,
   Receipt,
   Mic,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useAuth } from "../context/AuthContext";
@@ -46,6 +48,7 @@ export function Dashboard() {
   const { user } = useAuth();
   const { enabled: aiEnabled } = useAiPreferences();
   const [weeklyInsight, setWeeklyInsight] = useState<{ summary: string; suggestions: string[] } | null>(null);
+  const [setupCollapsed, setSetupCollapsed] = useState<boolean | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [insightBusy, setInsightBusy] = useState(false);
   const [insightError, setInsightError] = useState("");
@@ -88,6 +91,9 @@ export function Dashboard() {
     { label: "Add first expense", done: realTransactions.some((transaction) => transaction.type !== "income"), action: () => openQuickAdd("expense") },
     { label: "Set category limits", done: budgets.some((budget) => budget.limit > 0), action: () => navigate("/budgets") },
   ];
+  const setupDoneCount = checklistItems.filter((item) => item.done).length;
+  const setupExpanded = setupCollapsed === null ? setupDoneCount < 3 : !setupCollapsed;
+  const nextSetupAction = checklistItems.find((item) => !item.done)?.action;
   const displayName = user?.displayName?.trim() || user?.email || "there";
   const trend = (change: number | null, lowerIsBetter = false) => change === null
     ? { value: "No previous period" }
@@ -100,7 +106,7 @@ export function Dashboard() {
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Contextual Command Center Header */}
           <div
-            className="animate-slide-up"
+            className="dashboard-hero animate-slide-up"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -173,25 +179,74 @@ export function Dashboard() {
             </div>
           </div>
 
-          {checklistItems.some((item) => !item.done) && <motion.section
-            className="get-started-card"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            aria-labelledby="get-started-title"
-          >
-            <div className="get-started-heading">
-              <div><div className="eyebrow">A FEW SIMPLE STEPS</div><h2 id="get-started-title">Get started</h2></div>
-              <span>{checklistItems.filter((item) => item.done).length} of {checklistItems.length} done</span>
-            </div>
-            <div className="get-started-list">
-              {checklistItems.map((item) => <div className="get-started-item" key={item.label}>
-                <motion.span className={`get-started-check ${item.done ? "complete" : ""}`} initial={false} animate={{ scale: item.done ? [0.7, 1.1, 1] : 1 }} transition={{ duration: 0.28 }} aria-hidden="true">{item.done ? "✓" : ""}</motion.span>
-                <span>{item.label}</span>
-                {!item.done && <button type="button" className="button button-ghost" onClick={item.action}>Set up</button>}
-              </div>)}
-            </div>
-          </motion.section>}
+          {checklistItems.some((item) => !item.done) && (() => {
+            if (!setupExpanded) {
+              return (
+                <motion.section
+                  className="get-started-card get-started-collapsed"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  aria-labelledby="get-started-title"
+                >
+                  <div className="get-started-heading get-started-heading-collapsed">
+                    <div className="get-started-collapsed-title">
+                      <h2 id="get-started-title">Get started</h2>
+                      <span>{setupDoneCount} of {checklistItems.length} done</span>
+                    </div>
+                    <div className="get-started-heading-actions">
+                      {nextSetupAction && (
+                        <button type="button" className="button button-ghost" onClick={nextSetupAction}>Resume setup</button>
+                      )}
+                      <button
+                        type="button"
+                        className="button-icon get-started-toggle"
+                        aria-expanded="false"
+                        aria-controls="get-started-list"
+                        aria-label="Expand setup checklist"
+                        onClick={() => setSetupCollapsed(false)}
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.section>
+              );
+            }
+            return (
+              <motion.section
+                className="get-started-card"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                aria-labelledby="get-started-title"
+              >
+                <div className="get-started-heading">
+                  <div><div className="eyebrow">A FEW SIMPLE STEPS</div><h2 id="get-started-title">Get started</h2></div>
+                  <div className="get-started-heading-actions">
+                    <span>{setupDoneCount} of {checklistItems.length} done</span>
+                    <button
+                      type="button"
+                      className="button-icon get-started-toggle"
+                      aria-expanded="true"
+                      aria-controls="get-started-list"
+                      aria-label="Collapse setup checklist"
+                      onClick={() => setSetupCollapsed(true)}
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="get-started-list" id="get-started-list">
+                  {checklistItems.map((item) => <div className="get-started-item" key={item.label}>
+                    <motion.span className={`get-started-check ${item.done ? "complete" : ""}`} initial={false} animate={{ scale: item.done ? [0.7, 1.1, 1] : 1 }} transition={{ duration: 0.28 }} aria-hidden="true">{item.done ? "✓" : ""}</motion.span>
+                    <span>{item.label}</span>
+                    {!item.done && <button type="button" className="button button-ghost" onClick={item.action}>Set up</button>}
+                  </div>)}
+                </div>
+              </motion.section>
+            );
+          })()}
 
           {/* Primary Financial Metrics */}
           <section className="metrics-strip">

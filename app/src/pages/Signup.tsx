@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, Activity } from "lucide-react";
-import { ObservatoryMark } from "../components/ObservatoryMark";
+import { ArrowRight } from "lucide-react";
+import { AuthShell } from "../components/AuthShell";
+import { PasswordField } from "../components/PasswordField";
+import { AnimatedButton } from "@/components/ui/animated-button";
 import { useAuth } from "../context/AuthContext";
 import { firebaseErrorMessage } from "../firebase/errors";
 
@@ -35,292 +37,80 @@ export function Signup() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        overflow: "hidden",
-      }}
+    <AuthShell
+      mode="signup"
+      title="Create your account."
+      subtitle="Your account keeps your transactions and budgets in one place."
+      footer={
+        <>
+          Already registered?{" "}
+          <Link to="/login">Sign in</Link>
+        </>
+      }
     >
-      {/* Left panel — branding */}
-      <div
-        style={{
-          position: "relative",
-          background: "linear-gradient(160deg, rgba(14, 14, 16, 0.98) 0%, rgba(7, 7, 8, 1) 100%)",
-          borderRight: "1px solid var(--border-subtle)",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: "36px 48px",
-          overflow: "hidden",
-        }}
-        className="auth-left-panel"
-      >
-        {/* Ambient orbs */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-40px",
-            right: "-80px",
-            width: "450px",
-            height: "450px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 65%)",
-            pointerEvents: "none",
-            filter: "blur(50px)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "15%",
-            left: "-60px",
-            width: "280px",
-            height: "280px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(16,185,129,0.045) 0%, transparent 70%)",
-            pointerEvents: "none",
-            filter: "blur(50px)",
-          }}
-        />
+      {error && (
+        <div className="auth-error" role="alert">
+          {error}
+        </div>
+      )}
 
-        {/* Brand mark */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
-          <div className="brand-icon-shield">
-            <ObservatoryMark size={21} />
-          </div>
-          <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.02em" }}>
-            Financial Observatory
+      <form onSubmit={handleSignup} className="auth-form">
+        <div>
+          <label htmlFor="signup-name">Full name</label>
+          <input
+            id="signup-name"
+            type="text"
+            required
+            value={name}
+            autoComplete="name"
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter your name"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="signup-email">Email address</label>
+          <input
+            id="signup-email"
+            type="email"
+            required
+            value={email}
+            autoComplete="email"
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@domain.com"
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <PasswordField
+            id="signup-password"
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            required
+          />
+          <PasswordField
+            id="signup-confirm"
+            label="Confirm"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            autoComplete="new-password"
+            required
+          />
+        </div>
+
+        <AnimatedButton
+          type="submit"
+          className="button button-primary auth-submit"
+          disabled={isSubmitting}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+            {isSubmitting ? "Creating account…" : "Create account"}
+            <ArrowRight size={14} />
           </span>
-        </div>
-
-        {/* Central content */}
-        <div style={{ position: "relative", zIndex: 1 }}>
-          {/* 3-step progress preview */}
-          <div
-            style={{
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid rgba(255, 255, 255, 0.06)",
-              borderRadius: "var(--radius-md)",
-              padding: "20px 22px",
-              marginBottom: "32px",
-            }}
-          >
-            {[
-              { step: "01", label: "Monthly income", desc: "Estimate money you receive" },
-              { step: "02", label: "Spending categories", desc: "Choose what to track" },
-              { step: "03", label: "Monthly budget", desc: "Set a spending limit" },
-            ].map((item, idx) => (
-              <div
-                key={item.step}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  padding: idx < 2 ? "0 0 14px" : "0",
-                  borderBottom: idx < 2 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  marginBottom: idx < 2 ? "14px" : "0",
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
-                    color: "rgba(255,255,255,0.25)",
-                    minWidth: "24px",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {item.step}
-                </div>
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: 500, color: "#ffffff" }}>{item.label}</div>
-                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.38)", marginTop: "1px" }}>{item.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="eyebrow" style={{ marginBottom: "14px" }}>
-            <span className="dot" />
-            <span>QUICK SETUP</span>
-          </div>
-          <h2 style={{ fontSize: "1.6rem", marginBottom: "10px", lineHeight: 1.2 }}>
-            Initialize your financial<br />observatory in 3 steps.
-          </h2>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>
-            Add a few details to get started. You can change your budgets and categories later.
-          </p>
-
-          <div
-            style={{
-              marginTop: "28px",
-              display: "flex",
-              gap: "18px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "10.5px",
-              color: "rgba(255,255,255,0.38)",
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              <Activity size={10} color="var(--accent-pos)" />
-              LOCAL STORAGE
-            </span>
-            <span>ZERO CLOUD</span>
-            <span>FREE</span>
-          </div>
-        </div>
-
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 }}>
-          BUILD 2.1 • PRODUCTION
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div
-        className="animate-fade-in"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "40px 32px",
-          background: "var(--bg-app)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "400px" }}>
-          <div style={{ marginBottom: "28px" }}>
-            <Link
-              to="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "11.5px",
-                color: "rgba(255, 255, 255, 0.38)",
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.04em",
-                transition: "color var(--transition-fast)",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.38)")}
-            >
-              <ArrowLeft size={12} />
-              <span>Back to home</span>
-            </Link>
-          </div>
-
-          <div className="eyebrow" style={{ marginBottom: "12px" }}>
-            CREATE YOUR ACCOUNT
-          </div>
-          <h1 style={{ fontSize: "2.0rem", marginBottom: "8px" }}>Create your account.</h1>
-          <p style={{ fontSize: "13.5px", color: "rgba(255, 255, 255, 0.45)", marginBottom: "28px", lineHeight: 1.6 }}>
-            Your account keeps your transactions and budgets in one place.
-          </p>
-
-          {error && (
-            <div
-              style={{
-                padding: "10px 14px",
-                background: "var(--accent-neg-bg)",
-                border: "1px solid var(--accent-neg-border)",
-                borderRadius: "var(--radius-sm)",
-                color: "var(--accent-neg)",
-                fontSize: "13px",
-                marginBottom: "16px",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <label htmlFor="signup-name">FULL NAME</label>
-              <input
-                id="signup-name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="signup-email">EMAIL ADDRESS</label>
-              <input
-                id="signup-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@domain.com"
-              />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
-                  <label htmlFor="signup-password">PASSWORD</label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="signup-confirm">CONFIRM</label>
-                <input
-                  id="signup-confirm"
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="button button-primary"
-              disabled={isSubmitting}
-              style={{ width: "100%", padding: "12px", marginTop: "8px" }}
-            >
-              <span>{isSubmitting ? "Creating account..." : "Create Account"}</span>
-              <ArrowRight size={14} />
-            </button>
-          </form>
-
-          <div
-            style={{
-              marginTop: "28px",
-              paddingTop: "20px",
-              borderTop: "1px solid var(--border-subtle)",
-              textAlign: "center",
-              fontSize: "13px",
-              color: "rgba(255, 255, 255, 0.38)",
-            }}
-          >
-            Already registered?{" "}
-            <Link to="/login" style={{ color: "#ffffff", fontWeight: 500 }}>
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .auth-left-panel { display: none; }
-          div[style*="grid-template-columns: 1fr 1fr"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </div>
+        </AnimatedButton>
+      </form>
+    </AuthShell>
   );
 }
