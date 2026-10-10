@@ -2,14 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── User-owned data ────────────────────────────────────────────────────
+    // Authenticated users may only read and write their own documents.
+    // All sub-collections (transactions, budgets, categories, goals, etc.)
+    // are covered by the wildcard sub-match below.
     match /users/{userId} {
       allow read, create, update, delete: if request.auth != null
         && request.auth.uid == userId;
 
       match /{document=**} {
-        allow read, write: if request.auth != null
+        allow read: if request.auth != null
+          && request.auth.uid == userId;
+
+        // Create/update guard: field count <= 40 prevents excessively large
+        // client writes. Kept separate from delete because request.resource
+        // is null during a delete, which would otherwise deny all deletions.
+        allow create, update: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.keys().size() <= 40;
+
+        allow delete: if request.auth != null
           && request.auth.uid == userId;
       }
+    }
+
+    // ── Server-only collections ────────────────────────────────────────────
+    // aiRateLimits is maintained exclusively by the Admin SDK (server).
+    // Clients must never read or write it directly.
+    match /aiRateLimits/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── Catch-all deny ─────────────────────────────────────────────────────
+    // Anything not matched above is denied by default in Firestore, but this
+    // explicit catch-all makes intent clear.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
