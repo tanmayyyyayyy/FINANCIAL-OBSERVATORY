@@ -29,12 +29,15 @@ Both services run on Render. The frontend is a static React/Vite SPA. The backen
 
 ## Product Preview
 
-Screenshots can be added here once captured from the live environment.
+Financial Observatory is a dark fintech interface built around clarity and focus. The current design language includes:
 
-```
-app/src/assets/   ← place screenshots here and reference them below:
-![Dashboard](app/src/assets/dashboard.png)
-```
+- **Dark fintech interface** — near-black surfaces, subtle gradients, and fine borders
+- **Consistent Inter typography** — a single type system with tabular numerals for financial figures
+- **Redesigned split-screen authentication** — shared `AuthShell` layout and `PasswordField` controls across Login and Signup
+- **Dashboard with clear financial metric hierarchy** — primary Money In / Money Out / Money Left / Saved metrics leading the page
+- **Consistent styling across application pages** — shared spacing, surfaces, and controls across Budgets, Ledger, Prediction, Settings, and onboarding flows
+
+Screenshots are not currently included in this repository.
 
 ---
 
@@ -54,11 +57,14 @@ app/src/assets/   ← place screenshots here and reference them below:
 
 ### Financial Dashboard
 
-- **Money In / Money Out / Money Left** — three primary financial metrics computed from recorded transactions and your income profile
+- **Money In / Money Out / Money Left / Saved** — primary financial metrics presented in a clear hierarchy, computed from recorded transactions and your income profile
 - Spending summary cards with period filtering
 - Category breakdown chart
 - Recent transaction activity feed
 - AI-generated weekly spending insights
+- Collapsible onboarding checklist that tracks setup progress and surfaces the next incomplete step
+
+Financial calculations follow a single, deterministic model: Money In is the onboarding income profile plus all recorded income transactions, Money Out is the sum of expense transactions, Money Left is Money In minus Money Out, and Saved is derived from the same additive income logic. Legacy transactions without a `type` are treated as expenses.
 
 ### Quick Add PWA
 
@@ -142,6 +148,22 @@ Browser
 
 ---
 
+## Design System & UI
+
+The interface follows an Apple × Linear × Raycast direction — deep black surfaces, restrained indigo accents, glass panels, and precise financial typography.
+
+- **Inter typography** — applied consistently across the application, with tabular numerals for financial values so amounts align and read cleanly. The previous serif display face (Instrument Serif) has been fully replaced.
+- **Tailwind CSS v4** — integrated through the official `@tailwindcss/vite` plugin, alongside the project's existing custom CSS design tokens (surfaces, borders, accents, radii, typography, and easing variables).
+- **Shared authentication components** — `AuthShell` provides the split-screen layout for Login and Signup, and `PasswordField` provides the shared password input with visibility toggle and validation states.
+- **UI primitives** — reusable components (`MetricCard`, `EmptyState`, `AccessibleSelect`, animated number, glow-border card, and related primitives) are shared across pages rather than reimplemented. Not every bundled UI library or demo is used throughout the app.
+- **Framer Motion interactions** — existing entrance, metric, and layout animations are preserved.
+- **Reduced-motion support** — animations respect the user's `prefers-reduced-motion` preference.
+- **Accessibility** — labeled controls, visible focus states, and keyboard-friendly navigation are applied across pages.
+
+> Build and type checks verify that the application compiles; browser-based visual QA of every page and breakpoint is not part of automated validation.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology | Version |
@@ -149,6 +171,8 @@ Browser
 | Frontend framework | React | 19 |
 | Language | TypeScript | 6 |
 | Build tool | Vite | 8 |
+| Styling | Tailwind CSS (via `@tailwindcss/vite`) | 4 |
+| Styling | Custom CSS design tokens | — |
 | Routing | React Router | 7 |
 | Charts | Recharts | 3 |
 | Animation | Framer Motion | 13 |
@@ -247,6 +271,8 @@ Smart-Expense-Tracker/
 │       │   ├── Prediction.tsx
 │       │   ├── Settings.tsx
 │       │   ├── AddExpense.tsx
+│       │   ├── QuickAdd.tsx
+│       │   ├── TransactionSuccess.tsx
 │       │   ├── Onboarding.tsx
 │       │   ├── Landing.tsx
 │       │   ├── Login.tsx
@@ -260,7 +286,10 @@ Smart-Expense-Tracker/
 │       │   ├── SpendingChart.tsx
 │       │   ├── CategoryBreakdown.tsx
 │       │   ├── MetricCard.tsx
-│       │   └── Navbar.tsx
+│       │   ├── AuthShell.tsx
+│       │   ├── PasswordField.tsx
+│       │   ├── Navbar.tsx
+│       │   └── ui/               # Shared UI primitives
 │       ├── context/              # React context providers
 │       ├── firebase/             # Firebase SDK initialization
 │       └── utils/                # Utility functions
