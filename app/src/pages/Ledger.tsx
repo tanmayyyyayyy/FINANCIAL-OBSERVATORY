@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Search, Plus, Trash2, Filter, Receipt } from "lucide-react";
+import { Search, Plus, Trash2, Filter, Receipt, Download, RotateCcw, Check } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
+import type { Transaction } from "../types";
 import { EmptyState } from "../components/EmptyState";
 import { isIncomeTransaction } from "../utils/analytics";
 import { formatCurrency, formatDate } from "../utils/formatters";
@@ -10,14 +11,110 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export function Ledger() {
   const { openQuickAdd } = useOutletContext<{ openQuickAdd: () => void }>();
-  const { transactions, deleteTransaction } = useTransactions();
+  const { transactions, deleteTransaction, addTransaction } = useTransactions();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedMethod, setSelectedMethod] = useState<string>("ALL");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest">("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [deletedTx, setDeletedTx] = useState<Transaction | null>(null);
+  const [exportedSuccess, setExportedSuccess] = useState(false);
+  const undoTimeoutRef = useRef<number | null>(null);
   const filterSheetRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
+
+  function escapeCsvField(val: string | number) {
+    const raw = String(val);
+    const trimmed = raw.replace(/^[ \t\r\n]+/, "");
+    const hasLeadingDanger = /^[=+\-@]/.test(trimmed);
+    const s = raw.replace(/\t/g, " ").replace(/\r/g, " ").replace(/\n/g, " ");
+    if (hasLeadingDanger || /^[=+\-@]/.test(s)) {
+      return "'" + s;
+    }
+    if (s.includes(",") || s.includes('"')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function handleExportCsv() {
+    const dataToExport = filteredTransactions.length > 0 ? filteredTransactions : transactions;
+    if (dataToExport.length === 0) return;
+
+    const headers = ["Date", "Type", "Amount", "Category", "Description", "Payment Method"];
+    const rows = dataToExport.map((t) => [
+      escapeCsvField(t.date),
+      escapeCsvField(t.type || "expense"),
+      escapeCsvField(t.amount.toFixed(2)),
+      escapeCsvField(t.category || ""),
+      escapeCsvField(t.description || ""),
+      escapeCsvField(t.paymentMethod || ""),
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const filename = `financial-observatory-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    // Try Web Share on mobile if supported
+    if (typeof navigator !== "undefined" && navigator.canShare && typeof File !== "undefined") {
+      try {
+        const file = new File([blob], filename, { type: "text/csv" });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: "Financial Observatory Transactions",
+            text: `Export of ${dataToExport.length} transactions from Financial Observatory.`,
+          }).catch(() => downloadBlob(blob, filename));
+          setExportedSuccess(true);
+          setTimeout(() => setExportedSuccess(false), 2500);
+          return;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    downloadBlob(blob, filename);
+    setExportedSuccess(true);
+    setTimeout(() => setExportedSuccess(false), 2500);
+  }
+
+  async function handleDelete(tx: Transaction) {
+    if (confirm("Delete this transaction entry from the ledger?")) {
+      try {
+        await deleteTransaction(tx.id);
+        setDeletedTx(tx);
+        if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+        undoTimeoutRef.current = window.setTimeout(() => setDeletedTx(null), 6000);
+      } catch {
+        // Handled in context
+      }
+    }
+  }
+
+  async function handleUndo() {
+    if (!deletedTx) return;
+    try {
+      const { id, createdAt, ...rest } = deletedTx;
+      void id;
+      void createdAt;
+      await addTransaction(rest);
+      setDeletedTx(null);
+    } catch {
+      // Handled
+    }
+  }
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -80,7 +177,7 @@ export function Ledger() {
         <div className="app-container" style={{ paddingTop: "40px" }}>
           {/* Header */}
           <div
-            className="animate-slide-up"
+            className="page-hero animate-slide-up"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -104,6 +201,16 @@ export function Ledger() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={handleExportCsv}
+                title="Export transactions to CSV"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px" }}
+              >
+                {exportedSuccess ? <Check size={13} color="var(--accent-pos, #10b981)" /> : <Download size={13} />}
+                <span>{exportedSuccess ? "Exported" : "Export CSV"}</span>
+              </button>
               <button
                 type="button"
                 className="button button-primary"
@@ -174,6 +281,7 @@ export function Ledger() {
               />
               <input
                 type="text"
+                aria-label="Search transactions"
                 placeholder="Search merchant, category, or note..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -192,6 +300,7 @@ export function Ledger() {
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <Filter size={13} color="rgba(255, 255, 255, 0.4)" />
                 <select
+                  aria-label="Filter by category"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   style={{ width: "auto", padding: "6px 10px", fontSize: "12.5px" }}
@@ -206,6 +315,7 @@ export function Ledger() {
               </div>
 
               <select
+                aria-label="Filter by payment method"
                 value={selectedMethod}
                 onChange={(e) => setSelectedMethod(e.target.value)}
                 style={{ width: "auto", padding: "6px 10px", fontSize: "12.5px" }}
@@ -219,6 +329,7 @@ export function Ledger() {
               </select>
 
               <select
+                aria-label="Sort transactions"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest" | "highest")}
                 style={{ width: "auto", padding: "6px 10px", fontSize: "12.5px" }}
@@ -283,11 +394,7 @@ export function Ledger() {
                           className="button-icon"
                           style={{ width: "26px", height: "26px" }}
                           title="Delete transaction"
-                          onClick={() => {
-                            if (confirm("Delete this transaction entry from the ledger?")) {
-                              void deleteTransaction(tx.id).catch(() => undefined);
-                            }
-                          }}
+                          onClick={() => void handleDelete(tx)}
                         >
                           <Trash2 size={12} color="rgba(244, 63, 94, 0.65)" />
                         </button>
@@ -348,8 +455,49 @@ export function Ledger() {
               <option value="oldest">Oldest First</option>
               <option value="highest">Highest Amount</option>
             </select>
-            <button type="button" className="button button-primary filter-sheet-done" onClick={() => setFiltersOpen(false)}>Show {filteredTransactions.length} transactions</button>
+            <button type="button" className="button button-secondary" onClick={handleExportCsv} style={{ width: "100%", justifyContent: "center", marginTop: "10px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <Download size={14} />
+              <span>Export CSV ({filteredTransactions.length})</span>
+            </button>
+            <button type="button" className="button button-primary filter-sheet-done" onClick={() => setFiltersOpen(false)} style={{ marginTop: "8px" }}>Show {filteredTransactions.length} transactions</button>
           </section>
+        </div>
+      )}
+
+      {/* Undo Delete Toast */}
+      {deletedTx && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1050,
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "10px 16px",
+            background: "rgba(18, 18, 22, 0.96)",
+            border: "1px solid var(--border-medium)",
+            borderRadius: "12px",
+            boxShadow: "var(--shadow-modal)",
+            backdropFilter: "blur(12px)",
+            fontSize: "13px",
+            color: "#ffffff",
+          }}
+        >
+          <span>Transaction removed</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="button button-secondary"
+            style={{ padding: "4px 10px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--accent-pos, #10b981)" }}
+          >
+            <RotateCcw size={12} />
+            <span>Undo</span>
+          </button>
         </div>
       )}
 
