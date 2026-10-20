@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles, Puzzle, ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles, Puzzle, ChevronDown, ChevronUp, Copy, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
 import { useAuth } from "../context/AuthContext";
 import { useAiPreferences } from "../context/AiPreferencesContext";
 import { StatementImport } from "../components/StatementImport";
+import { usePrivacyShield } from "../utils/usePrivacyShield";
 
 const AI_PRIVACY_EXPLANATION = "AI features can send the information needed for the feature you use, such as transaction text, merchant names, amounts, dates, budget summaries, or uploaded receipt images. Your request passes through a Firebase server function to the configured AI provider. Your browser never receives the AI provider's secret key. Provider data handling is governed by that provider's terms.";
 
@@ -14,6 +15,7 @@ export function Settings() {
   const { budgets } = useBudgets();
   const { user, updateDisplayName } = useAuth();
   const { enabled: aiEnabled, loading: aiPreferenceLoading, saving: aiPreferenceSaving, error: aiPreferenceError, setEnabled: setAiEnabled } = useAiPreferences();
+  const { isPrivacyMode, togglePrivacyMode, autoBackgroundMask, toggleAutoBackgroundMask } = usePrivacyShield();
 
   const [name, setName] = useState(user?.displayName || "");
   const email = user?.email || "";
@@ -389,6 +391,100 @@ export function Settings() {
                 <p style={{ lineHeight: 1.65, marginTop: "8px" }}>{AI_PRIVACY_EXPLANATION}</p>
               </details>
               {(aiPreferenceError || aiActionError) && <div role="alert" style={{ color: "var(--accent-neg)", fontSize: "12px" }}>{aiActionError || aiPreferenceError}</div>}
+            </div>
+          </section>
+
+          {/* Privacy & Session Security */}
+          <section
+            style={{
+              padding: "28px 0",
+              borderTop: "1px solid var(--border-subtle)",
+              display: "grid",
+              gridTemplateColumns: "240px 1fr",
+              gap: "32px",
+            }}
+            className="settings-section"
+          >
+            <div>
+              <div className="eyebrow">
+                <Shield size={12} />
+                <span>PRIVACY & SECURITY</span>
+              </div>
+              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Privacy Shield</h2>
+              <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
+                Protect sensitive figures from shoulder surfing and screen switching.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>Mask Financial Balances</span>
+                    <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: "4px" }}>Shift+P</span>
+                  </div>
+                  <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px" }}>
+                    Blurs monetary figures across all views. Hover or tap to temporarily reveal.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-pressed={isPrivacyMode}
+                  aria-label={`Privacy mode ${isPrivacyMode ? "on" : "off"}`}
+                  onClick={togglePrivacyMode}
+                  className={`button ${isPrivacyMode ? "button-primary" : "button-secondary"}`}
+                  style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px", flexShrink: 0 }}
+                >
+                  {isPrivacyMode ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px" }}>
+                    Multitasking Screen Curtain
+                  </div>
+                  <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px" }}>
+                    Automatically masks the interface when switching apps or putting the window in the background.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-pressed={autoBackgroundMask}
+                  aria-label={`Multitasking curtain ${autoBackgroundMask ? "on" : "off"}`}
+                  onClick={toggleAutoBackgroundMask}
+                  className={`button ${autoBackgroundMask ? "button-primary" : "button-secondary"}`}
+                  style={{ minWidth: "56px", padding: "5px 12px", fontSize: "11.5px", flexShrink: 0 }}
+                >
+                  {autoBackgroundMask ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "14px" }}>
+                    Idle Session Auto-Logout
+                  </div>
+                  <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px" }}>
+                    Automatically terminates session after 30 minutes of inactivity to keep your money records private.
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    color: "var(--accent-pos)",
+                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                    flexShrink: 0,
+                  }}
+                >
+                  ACTIVE (30M)
+                </span>
+              </div>
             </div>
           </section>
 

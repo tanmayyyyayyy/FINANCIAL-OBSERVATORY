@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, LayoutDashboard, PieChart, BookOpen, TrendingUp, Settings, Plus, LogOut, MessageCircle } from "lucide-react";
+import { ArrowRight, LayoutDashboard, PieChart, BookOpen, TrendingUp, Settings, Plus, LogOut, MessageCircle, Shield } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { containDialogFocus } from "../utils/dialogFocus";
 
@@ -11,11 +11,12 @@ const commands = [
   { label: "Transactions", hint: "Open your ledger", path: "/ledger", icon: BookOpen },
   { label: "Plan", hint: "View your forecast", path: "/prediction", icon: TrendingUp },
   { label: "Settings", hint: "Manage your account", path: "/settings", icon: Settings },
+  { label: "Privacy Shield", hint: "Mask / unmask numbers (Shift+P)", path: "#privacy", icon: Shield },
   { label: "Quick Add expense", hint: "Record money in or out", path: "/quick-add", icon: Plus },
   { label: "Ask your money", hint: "Ask about your spending", path: "#ask", icon: MessageCircle },
 ];
 
-export function CommandPalette({ open, onClose, onQuickAdd, onAskYourMoney }: { open: boolean; onClose: () => void; onQuickAdd: () => void; onAskYourMoney: () => void }) {
+export function CommandPalette({ open, onClose, onQuickAdd, onAskYourMoney, onTogglePrivacy }: { open: boolean; onClose: () => void; onQuickAdd: () => void; onAskYourMoney: () => void; onTogglePrivacy?: () => void }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +44,7 @@ export function CommandPalette({ open, onClose, onQuickAdd, onAskYourMoney }: { 
     onClose();
     if (path === "/add-expense" || path === "/quick-add") { onQuickAdd(); return; }
     if (path === "#ask") { onAskYourMoney(); return; }
+    if (path === "#privacy") { onTogglePrivacy?.(); return; }
     if (path) navigate(path);
   }
 

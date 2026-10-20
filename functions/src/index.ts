@@ -6,5 +6,6 @@ if (getApps().length === 0) initializeApp();
 
 setGlobalOptions({
   region: "asia-south1",
-  maxInstances: 10,
+  maxInstances: 30,
+  concurrency: 80,
 });

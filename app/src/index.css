@@ -3256,3 +3256,34 @@ textarea {
     letter-spacing: -0.03em;
   }
 }
+
+/* =========================================================
+   PRIVACY SHIELD & SENSITIVE DATA PROTECTION
+   Shoulder-surfing protection: masks financial balances
+   Background blur: protects screen when multitasking / blurred
+========================================================= */
+
+body.privacy-mode .tabular-nums,
+body.privacy-mode .metric-value,
+body.privacy-mode .metric-column .metric-value,
+body.privacy-mode [data-private-amount] {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+
+body.privacy-mode .tabular-nums:hover,
+body.privacy-mode .metric-value:hover,
+body.privacy-mode .metric-column .metric-value:hover,
+body.privacy-mode [data-private-amount]:hover {
+  filter: none;
+}
+
+/* Multitasking background protection */
+body.app-backgrounded #root {
+  filter: blur(14px);
+  opacity: 0.25;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+  pointer-events: none;
+}

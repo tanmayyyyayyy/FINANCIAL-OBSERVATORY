@@ -9,6 +9,8 @@ import {
   Plus,
   LogOut,
   Receipt,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ObservatoryMark } from "./ObservatoryMark";
@@ -19,9 +21,11 @@ interface NavbarProps {
   onOpenQuickAdd?: () => void;
   onOpenCommandPalette?: () => void;
   onAskYourMoney?: () => void;
+  onTogglePrivacy?: () => void;
+  isPrivacyMode?: boolean;
 }
 
-export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }: NavbarProps) {
+export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney, onTogglePrivacy, isPrivacyMode }: NavbarProps) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const [timeString, setTimeString] = useState<string>("");
@@ -113,6 +117,23 @@ export function Navbar({ onOpenQuickAdd, onOpenCommandPalette, onAskYourMoney }:
               <span className="status-pulse" />
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{timeString || "LIVE"}</span>
             </div>
+
+            {onTogglePrivacy && (
+              <button
+                type="button"
+                className="button-icon"
+                onClick={onTogglePrivacy}
+                title={isPrivacyMode ? "Privacy shield active (Shift+P) — click to reveal" : "Mask balances (Shift+P)"}
+                aria-label={isPrivacyMode ? "Disable privacy shield" : "Enable privacy shield"}
+                aria-pressed={isPrivacyMode}
+                style={{
+                  color: isPrivacyMode ? "var(--accent-pos)" : undefined,
+                  borderColor: isPrivacyMode ? "rgba(16, 185, 129, 0.4)" : undefined,
+                }}
+              >
+                {isPrivacyMode ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            )}
 
             {onOpenQuickAdd ? (
               <button
