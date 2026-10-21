@@ -254,9 +254,9 @@ export function computeFinancialSummary(transactions: Transaction[], budgets: Bu
       category: item.category,
       spent: item.amount,
       limit: 0,
-      percentage: 100,
+      percentage: 0,
       remaining: 0,
-      isOver: true,
+      isOver: false,
       transactionCount: transactions.filter((transaction) => isExpenseTransaction(transaction) &&
         transaction.category.trim().toLowerCase() === item.category.trim().toLowerCase() &&
         parsedDate(transaction.date)?.toISOString().slice(0, 7) === currentMonthKey(),

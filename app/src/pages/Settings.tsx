@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles, Puzzle, ChevronDown, ChevronUp, Copy, Shield } from "lucide-react";
+import { User, Bell, Tag, Download, RefreshCw, Check, Sparkles, Puzzle, ChevronDown, ChevronUp, Copy, Shield, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
@@ -7,6 +7,8 @@ import { useAuth } from "../context/AuthContext";
 import { useAiPreferences } from "../context/AiPreferencesContext";
 import { StatementImport } from "../components/StatementImport";
 import { usePrivacyShield } from "../utils/usePrivacyShield";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
+
 
 const AI_PRIVACY_EXPLANATION = "AI features can send the information needed for the feature you use, such as transaction text, merchant names, amounts, dates, budget summaries, or uploaded receipt images. Your request passes through a Firebase server function to the configured AI provider. Your browser never receives the AI provider's secret key. Provider data handling is governed by that provider's terms.";
 
@@ -16,18 +18,23 @@ export function Settings() {
   const { user, updateDisplayName } = useAuth();
   const { enabled: aiEnabled, loading: aiPreferenceLoading, saving: aiPreferenceSaving, error: aiPreferenceError, setEnabled: setAiEnabled } = useAiPreferences();
   const { isPrivacyMode, togglePrivacyMode, autoBackgroundMask, toggleAutoBackgroundMask } = usePrivacyShield();
+  const { profile, saveOnboardingFinancials, saveCategories } = useFinancialProfile();
 
   const [name, setName] = useState(user?.displayName || "");
   const email = user?.email || "";
-  const [categories, setCategories] = useState([
-    "Food & Dining",
-    "Transport",
-    "Utilities",
-    "Entertainment",
-    "Shopping",
-    "Housing",
-    "Health",
-  ]);
+
+  // Financial profile editing
+  const [incomeInput, setIncomeInput] = useState<string | null>(null);
+  const [budgetInput, setBudgetInput] = useState<string | null>(null);
+  const incomeValue = incomeInput !== null ? incomeInput : (profile.monthlyIncome > 0 ? String(profile.monthlyIncome) : "");
+  const budgetValue = budgetInput !== null ? budgetInput : (profile.monthlyBudget > 0 ? String(profile.monthlyBudget) : "");
+  const [financialSaveSuccess, setFinancialSaveSuccess] = useState(false);
+  const [financialSaveError, setFinancialSaveError] = useState("");
+  const [financialSaving, setFinancialSaving] = useState(false);
+
+  // Categories — persisted in Firestore users/{uid}.categories via FinancialProfileContext
+  const categories = profile.categories || [];
+
   const [newCategory, setNewCategory] = useState("");
   const [notifications, setNotifications] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -63,17 +70,41 @@ export function Settings() {
     }
   }
 
+  async function handleSaveFinancials(e: React.FormEvent) {
+    e.preventDefault();
+    setFinancialSaveError("");
+    const inc = parseFloat(incomeValue);
+    const bud = parseFloat(budgetValue);
+    if (!Number.isFinite(inc) || inc <= 0) { setFinancialSaveError("Enter a valid monthly income."); return; }
+    if (!Number.isFinite(bud) || bud <= 0) { setFinancialSaveError("Enter a valid monthly budget."); return; }
+    if (bud > inc) { setFinancialSaveError("Budget cannot exceed income."); return; }
+    setFinancialSaving(true);
+    try {
+      await saveOnboardingFinancials(inc, bud);
+      setIncomeInput(null);
+      setBudgetInput(null);
+      setFinancialSaveSuccess(true);
+      setTimeout(() => setFinancialSaveSuccess(false), 2500);
+    } catch (cause) {
+      setFinancialSaveError(cause instanceof Error ? cause.message : "Unable to save financial profile.");
+    } finally {
+      setFinancialSaving(false);
+    }
+  }
+
   function handleAddCategory(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newCategory.trim();
     if (trimmed && !categories.includes(trimmed)) {
-      setCategories([...categories, trimmed]);
+      const updated = [...categories, trimmed];
+      void saveCategories(updated);
       setNewCategory("");
     }
   }
 
   function handleRemoveCategory(cat: string) {
-    setCategories(categories.filter((c) => c !== cat));
+    const updated = categories.filter((c) => c !== cat);
+    void saveCategories(updated);
   }
 
   function handleExportData() {
@@ -186,6 +217,67 @@ export function Settings() {
                     }}
                   >
                     <Check size={13} /> Name saved to your account
+                  </span>
+                )}
+              </div>
+            </form>
+          </section>
+
+          {/* Section: Financial Profile */}
+          <section
+            style={{
+              padding: "28px 0",
+              borderTop: "1px solid var(--border-subtle)",
+              display: "grid",
+              gridTemplateColumns: "240px 1fr",
+              gap: "32px",
+            }}
+            className="settings-section"
+          >
+            <div>
+              <div className="eyebrow">
+                <TrendingUp size={12} />
+                <span>FINANCIAL PROFILE</span>
+              </div>
+              <h2 style={{ fontSize: "1.2rem", marginTop: "2px" }}>Income & Budget</h2>
+              <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.45)", marginTop: "6px" }}>
+                Update your monthly income and spending budget at any time.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveFinancials} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div>
+                  <label htmlFor="settings-income">MONTHLY INCOME (₹)</label>
+                  <input
+                    id="settings-income"
+                    type="number"
+                    min={1}
+                    value={incomeValue}
+                    onChange={(e) => { setIncomeInput(e.target.value); setFinancialSaveError(""); }}
+                    placeholder={profile.monthlyIncome > 0 ? String(profile.monthlyIncome) : "e.g. 50000"}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="settings-budget">MONTHLY BUDGET (₹)</label>
+                  <input
+                    id="settings-budget"
+                    type="number"
+                    min={1}
+                    value={budgetValue}
+                    onChange={(e) => { setBudgetInput(e.target.value); setFinancialSaveError(""); }}
+                    placeholder={profile.monthlyBudget > 0 ? String(profile.monthlyBudget) : "e.g. 40000"}
+                  />
+                </div>
+              </div>
+              {financialSaveError && <div role="alert" style={{ color: "var(--accent-neg)", fontSize: "12px" }}>{financialSaveError}</div>}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "4px" }}>
+                <button type="submit" className="button button-primary" style={{ padding: "8px 18px" }} disabled={financialSaving}>
+                  {financialSaving ? "Saving…" : "Save Financial Profile"}
+                </button>
+                {financialSaveSuccess && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--accent-pos)", fontSize: "12.5px" }}>
+                    <Check size={13} /> Saved
                   </span>
                 )}
               </div>

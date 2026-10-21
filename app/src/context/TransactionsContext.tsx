@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, setDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import type { Transaction } from "../types";
 import { useAuth } from "./AuthContext";
 import { db } from "../firebase/firebase";
@@ -10,6 +10,7 @@ interface TransactionsContextValue {
   error: string | null;
   clearError: () => void;
   addTransaction: (t: Omit<Transaction, "id" | "createdAt">) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, "id" | "createdAt">>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addSampleData: () => Promise<boolean>;
   clearSampleData: () => Promise<void>;
@@ -110,6 +111,29 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  async function updateTransaction(id: string, updates: Partial<Omit<Transaction, "id" | "createdAt">>) {
+    if (!userId || !db) {
+      setError("Sign in with a configured Firebase account to update transactions.");
+      throw new Error("Sign in with a configured Firebase account to update transactions.");
+    }
+    const previous = savedTransactions;
+    setSavedTransactions((current) => ({
+      userId,
+      transactions: current.userId === userId
+        ? current.transactions.map((tx) => tx.id === id ? { ...tx, ...updates } : tx)
+        : current.transactions,
+    }));
+    try {
+      await updateDoc(doc(db, "users", userId, "transactions", id), updates as Record<string, unknown>);
+      setError(null);
+    } catch (cause) {
+      setSavedTransactions(previous.userId === userId ? previous : savedTransactions);
+      const message = firebaseErrorMessage(cause, "Unable to update this transaction.");
+      setError(message);
+      throw new Error(message);
+    }
+  }
+
   async function deleteTransaction(id: string) {
     if (!userId || !db) {
       setError("Sign in with a configured Firebase account to delete transactions.");
@@ -201,7 +225,7 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
 
   return (
     <TransactionsContext.Provider
-      value={{ transactions, error, clearError: () => setError(null), addTransaction, deleteTransaction, addSampleData, clearSampleData }}
+      value={{ transactions, error, clearError: () => setError(null), addTransaction, updateTransaction, deleteTransaction, addSampleData, clearSampleData }}
     >
       {children}
     </TransactionsContext.Provider>

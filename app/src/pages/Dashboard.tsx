@@ -308,7 +308,63 @@ export function Dashboard() {
             {signals.budgetAlerts.slice(0, 2).map((alert) => <p className="signal-alert" key={alert.category}>{alert.category} is at {Math.round(alert.spent / alert.limit * 100)}% with {alert.daysLeft} days left.</p>)}
             {signals.unusual.map((transaction) => <p className="signal-alert" key={`unusual-${transaction.id}`}>Check {transaction.description || transaction.category} · {formatCurrency(transaction.amount)} is much higher than your past {transaction.category} entries.</p>)}
             {signals.duplicates.map((group) => <p className="signal-alert" key={`duplicate-${group[0].id}`}>Possible duplicate: {group[0].description || group[0].category} · {formatCurrency(group[0].amount)} on {formatDate(group[0].date)}. Review it in Transactions.</p>)}
-            {signals.recurring.length > 0 && <div className="signal-recurring"><strong>Possible regular payments</strong>{signals.recurring.map((item) => <span key={item.merchant}>{item.merchant} · about {formatCurrency(item.amount)} every {item.intervalDays >= 26 ? "month" : "week"}</span>)}</div>}
+            {signals.recurring.length > 0 && (
+              <div
+                style={{
+                  marginTop: "16px",
+                  padding: "16px 18px",
+                  borderRadius: "var(--radius-md, 12px)",
+                  background: "rgba(255, 255, 255, 0.02)",
+                  border: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-pos, #10b981)" }} />
+                    <strong style={{ fontSize: "12px", letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(255, 255, 255, 0.75)" }}>
+                      Active Subscriptions & Recurring Charges
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)" }}>
+                    {signals.recurring.length} recurring commitment{signals.recurring.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+                  {signals.recurring.map((item) => (
+                    <div
+                      key={item.merchant}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        background: "rgba(255, 255, 255, 0.03)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {item.merchant}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.4)", marginTop: "2px" }}>
+                          Every {item.intervalDays >= 26 ? "month" : "week"} · {item.count} payments
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.9)", fontVariantNumeric: "tabular-nums" }}>
+                          {formatCurrency(item.amount)}
+                        </div>
+                        <span style={{ fontSize: "10px", color: "var(--accent-warn, #f59e0b)", background: "rgba(245, 158, 11, 0.1)", padding: "1px 5px", borderRadius: "3px" }}>
+                          Recurring
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {weeklyInsight && (
               <div className="ai-weekly-summary relative overflow-hidden">
                 <BorderBeam

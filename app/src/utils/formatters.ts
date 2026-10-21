@@ -26,6 +26,19 @@ export function formatCurrency(amount: number, showDecimals: boolean = false): s
 
 export function formatDate(isoString: string): string {
   try {
+    // For ISO date-only strings (YYYY-MM-DD), parse as UTC to avoid timezone
+    // shifting the date (e.g. "2026-08-12" becoming Aug 11 in IST +5:30).
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+      const [year, month, day] = isoString.split("-").map(Number);
+      const d = new Date(Date.UTC(year, month - 1, day));
+      if (isNaN(d.getTime())) return isoString;
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+    }
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return isoString;
     return d.toLocaleDateString("en-US", {

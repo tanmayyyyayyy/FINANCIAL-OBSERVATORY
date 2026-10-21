@@ -4,9 +4,20 @@ import { useAuth } from "./AuthContext";
 import { db } from "../firebase/firebase";
 import { firebaseErrorMessage } from "../firebase/errors";
 
+export const DEFAULT_USER_CATEGORIES = [
+  "Food & Dining",
+  "Transport",
+  "Utilities",
+  "Entertainment",
+  "Shopping",
+  "Housing",
+  "Health",
+];
+
 export interface FinancialProfile {
   monthlyIncome: number;
   monthlyBudget: number;
+  categories: string[];
 }
 
 interface FinancialProfileContextValue {
@@ -14,9 +25,10 @@ interface FinancialProfileContextValue {
   error: string | null;
   clearError: () => void;
   saveOnboardingFinancials: (monthlyIncome: number, monthlyBudget: number) => Promise<void>;
+  saveCategories: (categories: string[]) => Promise<void>;
 }
 
-const EMPTY_PROFILE: FinancialProfile = { monthlyIncome: 0, monthlyBudget: 0 };
+const EMPTY_PROFILE: FinancialProfile = { monthlyIncome: 0, monthlyBudget: 0, categories: DEFAULT_USER_CATEGORIES };
 const FinancialProfileContext = createContext<FinancialProfileContextValue | undefined>(undefined);
 
 export function FinancialProfileProvider({ children }: { children: ReactNode }) {
@@ -45,11 +57,15 @@ export function FinancialProfileProvider({ children }: { children: ReactNode }) 
         const data = snapshot.data();
         const monthlyIncome = data?.monthlyIncome;
         const monthlyBudget = data?.monthlyBudget;
+        const categories = Array.isArray(data?.categories) && data.categories.length > 0
+          ? data.categories.filter((c: unknown): c is string => typeof c === "string" && c.trim().length > 0)
+          : DEFAULT_USER_CATEGORIES;
         setSavedProfile({
           userId,
           profile: {
             monthlyIncome: typeof monthlyIncome === "number" && Number.isFinite(monthlyIncome) && monthlyIncome >= 0 ? monthlyIncome : 0,
             monthlyBudget: typeof monthlyBudget === "number" && Number.isFinite(monthlyBudget) && monthlyBudget >= 0 ? monthlyBudget : 0,
+            categories,
           },
         });
       },
@@ -74,10 +90,25 @@ export function FinancialProfileProvider({ children }: { children: ReactNode }) 
     }
   }
 
+  async function saveCategories(categories: string[]) {
+    if (!userId || !db) {
+      throw new Error("Sign in with a configured Firebase account to save categories.");
+    }
+    try {
+      const sanitized = categories.map((c) => c.trim()).filter((c) => c.length > 0);
+      await setDoc(doc(db, "users", userId), { categories: sanitized }, { merge: true });
+      setError(null);
+    } catch (cause) {
+      const message = firebaseErrorMessage(cause, "Unable to save categories.");
+      setError(message);
+      throw new Error(message);
+    }
+  }
+
   const profile = savedProfile.userId === userId ? savedProfile.profile : EMPTY_PROFILE;
 
   return (
-    <FinancialProfileContext.Provider value={{ profile, error, clearError: () => setError(null), saveOnboardingFinancials }}>
+    <FinancialProfileContext.Provider value={{ profile, error, clearError: () => setError(null), saveOnboardingFinancials, saveCategories }}>
       {children}
     </FinancialProfileContext.Provider>
   );

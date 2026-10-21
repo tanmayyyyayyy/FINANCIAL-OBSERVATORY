@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Check, AlertCircle, WifiOff, Mic } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useBudgets } from "../context/BudgetsContext";
+import { useFinancialProfile } from "../context/FinancialProfileContext";
 import { formatCurrency } from "../utils/formatters";
 import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
 import { VoiceExpenseModal } from "../components/VoiceExpenseModal";
@@ -35,6 +36,7 @@ const MAX_AMOUNT = 10_000_000; // Sensible upper bound: ₹1 Crore
 export function QuickAdd() {
   const { transactions, addTransaction } = useTransactions();
   const { budgets } = useBudgets();
+  const { profile } = useFinancialProfile();
 
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Food & Dining");
@@ -52,10 +54,17 @@ export function QuickAdd() {
   const amountInputRef = useRef<HTMLInputElement>(null);
   const userInteractedRef = useRef(false);
 
-  // Derive categories from app base list + user's existing categories
+  // Derive categories from app base list + user's saved categories + budgets + transactions
   const categories = useMemo(() => {
     const existingIds = new Set(BASE_CATEGORIES.map((c) => c.id));
     const extra: QuickCategory[] = [];
+
+    (profile.categories || []).forEach((cat) => {
+      if (cat && !existingIds.has(cat)) {
+        existingIds.add(cat);
+        extra.push({ id: cat, label: cat, icon: "🏷️" });
+      }
+    });
 
     budgets.forEach((b) => {
       if (b.category && !existingIds.has(b.category)) {
@@ -72,7 +81,7 @@ export function QuickAdd() {
     });
 
     return [...BASE_CATEGORIES, ...extra];
-  }, [budgets, transactions]);
+  }, [profile.categories, budgets, transactions]);
 
   // Online / offline status tracking
   useEffect(() => {
