@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   Wallet,
@@ -12,6 +12,10 @@ import {
   Mic,
   ChevronDown,
   ChevronUp,
+  Smartphone,
+  Zap,
+  Apple,
+  X,
 } from "lucide-react";
 import { useTransactions } from "../context/TransactionsContext";
 import { useAuth } from "../context/AuthContext";
@@ -20,6 +24,9 @@ import { useFinancialProfile } from "../context/FinancialProfileContext";
 import { MetricCard } from "../components/MetricCard";
 import { SpendingChart } from "../components/SpendingChart";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
+import { DashboardBudgets } from "../components/DashboardBudgets";
+import { GoalPlanner } from "../components/GoalPlanner";
+import { MobileShortcutModal } from "../components/MobileShortcutModal";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import {
   computeFinancialSummary,
@@ -41,6 +48,7 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { openQuickAdd, openAskYourMoney } = useOutletContext<{ openQuickAdd: (type?: TransactionType) => void; openAskYourMoney: () => void }>();
   const { transactions, addSampleData, clearSampleData } = useTransactions();
   const { budgets } = useBudgets();
@@ -49,10 +57,38 @@ export function Dashboard() {
   const { enabled: aiEnabled } = useAiPreferences();
   const [weeklyInsight, setWeeklyInsight] = useState<{ summary: string; suggestions: string[] } | null>(null);
   const [setupCollapsed, setSetupCollapsed] = useState<boolean | null>(null);
-  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const initialAction = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("action") : null;
+  const [voiceModalOpen, setVoiceModalOpen] = useState(() => initialAction === "voice");
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(() => initialAction === "shortcuts" || initialAction === "shortcut");
+  const [shortcutsModalTab, setShortcutsModalTab] = useState<"ios" | "android">("ios");
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("fo_welcome_dismissed") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [insightBusy, setInsightBusy] = useState(false);
   const [insightError, setInsightError] = useState("");
   const reduceMotion = useReducedMotion();
+
+  // Handle URL shortcut triggers that require contextual handlers
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (!action) return;
+    if (action === "ask") {
+      openAskYourMoney();
+      setSearchParams({}, { replace: true });
+    } else if (action === "quickadd") {
+      openQuickAdd("expense");
+      setSearchParams({}, { replace: true });
+    } else if (action === "income") {
+      openQuickAdd("income");
+      setSearchParams({}, { replace: true });
+    } else if (action === "voice" || action === "shortcuts" || action === "shortcut") {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, openAskYourMoney, openQuickAdd, setSearchParams]);
 
   // Time-aware contextual greeting
   const greeting = useMemo(() => {
@@ -133,6 +169,19 @@ export function Dashboard() {
               <button
                 type="button"
                 className="button button-secondary"
+                onClick={() => {
+                  setShortcutsModalTab("ios");
+                  setShortcutsModalOpen(true);
+                }}
+                aria-label="Set up mobile shortcuts"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Smartphone size={13} />
+                <span>Phone Shortcut</span>
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
                 onClick={() => setVoiceModalOpen(true)}
                 aria-label="Start voice expense entry"
                 style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
@@ -150,6 +199,174 @@ export function Dashboard() {
               </AnimatedButton>
             </div>
           </div>
+
+          {/* Comprehensive Quick Actions Hub */}
+          <div className="dashboard-quick-actions-bar" aria-label="Quick financial actions">
+            <button
+              type="button"
+              className="quick-action-btn primary"
+              onClick={() => openQuickAdd("expense")}
+              aria-label="Add expense"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              <span>+ Expense</span>
+            </button>
+            <button
+              type="button"
+              className="quick-action-btn"
+              onClick={() => openQuickAdd("income")}
+              aria-label="Add income"
+            >
+              <TrendingUp size={14} />
+              <span>+ Income</span>
+            </button>
+            <button
+              type="button"
+              className="quick-action-btn"
+              onClick={() => setVoiceModalOpen(true)}
+              aria-label="Start voice expense entry"
+            >
+              <Mic size={14} />
+              <span>🎙 Voice Entry</span>
+            </button>
+            <Link
+              to="/quick-add"
+              className="quick-action-btn"
+              aria-label="Open 5-second Quick Add"
+            >
+              <Zap size={14} />
+              <span>⚡ 5-Sec Add</span>
+            </Link>
+            <button
+              type="button"
+              className="quick-action-btn"
+              onClick={openAskYourMoney}
+              aria-label="Ask your money AI"
+            >
+              <Sparkles size={14} />
+              <span>Ask AI</span>
+            </button>
+            <button
+              type="button"
+              className="quick-action-btn shortcut-highlight"
+              onClick={() => {
+                setShortcutsModalTab("ios");
+                setShortcutsModalOpen(true);
+              }}
+              aria-label="Open mobile shortcuts modal"
+            >
+              <Smartphone size={14} />
+              <span>📱 Phone Shortcut</span>
+            </button>
+          </div>
+
+          {/* New User Welcome & Orientation Banner */}
+          {!welcomeDismissed && (
+            <div className="dashboard-welcome-banner animate-fade-in" role="region" aria-label="New User Guide">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
+                <div>
+                  <div className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                    <Sparkles size={13} style={{ color: "var(--accent-pos, #10b981)" }} />
+                    <span>NEW USER GUIDE · FINANCIAL OBSERVATORY</span>
+                  </div>
+                  <h2 style={{ fontSize: "1.35rem", fontWeight: 600, color: "#fff", margin: 0 }}>
+                    Welcome to Your Financial Command Center
+                  </h2>
+                  <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.6)", marginTop: "4px", maxWidth: "620px" }}>
+                    Everything is calculated from ground truth: <strong>Money Left = Money In − Money Out</strong>. Follow 3 simple steps to get the most clarity:
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem("fo_welcome_dismissed", "true");
+                    } catch {
+                      // storage unavailable
+                    }
+                    setWelcomeDismissed(true);
+                  }}
+                  aria-label="Dismiss welcome guide"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.06)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "rgba(255, 255, 255, 0.6)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="dashboard-welcome-grid">
+                <div className="dashboard-welcome-step">
+                  <div>
+                    <strong>1. Set Income & Limits</strong>
+                    <p>Income: {formatCurrency(profile.monthlyIncome)} · Budget: {formatCurrency(profile.monthlyBudget)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() => navigate("/onboarding")}
+                    style={{ fontSize: "11.5px", padding: "4px 8px", width: "fit-content" }}
+                  >
+                    Set Income / Budget →
+                  </button>
+                </div>
+
+                <div className="dashboard-welcome-step">
+                  <div>
+                    <strong>2. Track in Seconds</strong>
+                    <p>Log transactions via keyboard, scan receipts, or speak naturally.</p>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      type="button"
+                      className="button button-ghost"
+                      onClick={() => openQuickAdd("expense")}
+                      style={{ fontSize: "11.5px", padding: "4px 8px" }}
+                    >
+                      + Expense
+                    </button>
+                    {transactions.length === 0 && (
+                      <button
+                        type="button"
+                        className="button button-ghost"
+                        onClick={() => void addSampleData()}
+                        style={{ fontSize: "11.5px", padding: "4px 8px" }}
+                      >
+                        Try Sample Data
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="dashboard-welcome-step">
+                  <div>
+                    <strong>3. Phone Shortcuts</strong>
+                    <p>Double-tap the back of your iPhone or tap 1 icon on Android.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() => {
+                      setShortcutsModalTab("ios");
+                      setShortcutsModalOpen(true);
+                    }}
+                    style={{ fontSize: "11.5px", padding: "4px 8px", width: "fit-content" }}
+                  >
+                    Setup Phone Shortcut →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Mobile-only quick-action strip — hidden on desktop via CSS */}
           <div className="dashboard-mobile-cta" aria-label="Track an expense quick action">
@@ -405,6 +622,22 @@ export function Dashboard() {
             <CategoryBreakdown categories={summary.categorySpends} monthlyIncome={summary.monthlyIncome} />
           </section>}
 
+          {/* Category Budgets & Savings Goals Hub */}
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr)",
+              gap: "20px",
+              marginBottom: "20px",
+            }}
+            className="dashboard-budgets-goals-grid animate-fade-in"
+          >
+            <DashboardBudgets categorySpends={summary.categorySpends} totalBudget={summary.totalBudget} />
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
+              <GoalPlanner />
+            </div>
+          </section>
+
           {hasSampleData && <div className="sample-data-notice" role="status">
             <span>Sample data · these entries are examples, not your transactions.</span>
             <button type="button" className="button button-ghost" onClick={() => void clearSampleData()}>Clear sample data</button>
@@ -644,10 +877,74 @@ export function Dashboard() {
               </div>
             </div>
           </section>
+
+          {/* Instant Mobile Shortcuts Showcase Card */}
+          <section className="shortcuts-promo-card animate-fade-in" aria-label="Mobile Shortcuts Guide">
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  background: "rgba(99, 102, 241, 0.12)",
+                  border: "1px solid rgba(99, 102, 241, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--accent-pos, #10b981)",
+                  flexShrink: 0,
+                }}
+              >
+                <Zap size={22} />
+              </div>
+              <div>
+                <div className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+                  <span>INSTANT MOBILE ACCESS</span>
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#fff", margin: 0 }}>
+                  Open by Double-Tapping on iPhone · 1-Tap Shortcut on Android
+                </h3>
+                <p style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.5)", margin: "3px 0 0" }}>
+                  Configure physical iPhone Back Tap or Android home screen widget to log expenses in 5 seconds.
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => {
+                  setShortcutsModalTab("ios");
+                  setShortcutsModalOpen(true);
+                }}
+                style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "5px" }}
+              >
+                <Apple size={13} />
+                <span>iOS Double-Tap</span>
+              </button>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => {
+                  setShortcutsModalTab("android");
+                  setShortcutsModalOpen(true);
+                }}
+                style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "5px" }}
+              >
+                <Smartphone size={13} />
+                <span>Android Shortcut</span>
+              </button>
+            </div>
+          </section>
         </div>
       </main>
 
       <VoiceExpenseModal isOpen={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
+      <MobileShortcutModal
+        isOpen={shortcutsModalOpen}
+        defaultTab={shortcutsModalTab}
+        onClose={() => setShortcutsModalOpen(false)}
+      />
     </div>
   );
 }

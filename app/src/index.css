@@ -3287,3 +3287,142 @@ body.app-backgrounded #root {
   transition: filter 0.15s ease, opacity 0.15s ease;
   pointer-events: none;
 }
+
+/* =========================================================
+   DASHBOARD QUICK ACTIONS DOCK & NEW USER ONBOARDING
+========================================================= */
+
+.dashboard-quick-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.quick-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07));
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.quick-action-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border-medium, rgba(255, 255, 255, 0.15));
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.quick-action-btn.primary {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+  font-weight: 600;
+}
+
+.quick-action-btn.primary:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000;
+}
+
+.quick-action-btn.shortcut-highlight {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.quick-action-btn.shortcut-highlight:hover {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* New User Welcome Card */
+.dashboard-welcome-banner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: var(--radius-card, 14px);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.dashboard-welcome-step {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  gap: 8px;
+}
+
+.dashboard-welcome-step strong {
+  font-size: 13px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-welcome-step p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Mobile Shortcuts Showcase Card */
+.shortcuts-promo-card {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-card, 14px);
+  padding: 20px 22px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  transition: border-color var(--transition-fast);
+}
+
+.shortcuts-promo-card:hover {
+  border-color: var(--border-medium, rgba(255, 255, 255, 0.12));
+}
+
+@media (max-width: 900px) {
+  .dashboard-budgets-goals-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-quick-actions-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .quick-action-btn {
+    justify-content: center;
+  }
+}
