@@ -518,6 +518,9 @@ export function Landing() {
               <Link className="landing-footer-link" to="/login">Sign In</Link>
               <Link className="landing-footer-link" to="/signup">Create Account</Link>
             </>}
+            <span style={{ opacity: 0.3, fontSize: "0.75rem" }}>|</span>
+            <Link className="landing-footer-link" to="/privacy">Privacy</Link>
+            <Link className="landing-footer-link" to="/terms">Terms</Link>
           </nav>}
         </div>
       </footer>

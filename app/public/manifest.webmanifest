@@ -2,16 +2,37 @@
   "name": "Financial Observatory",
   "short_name": "Observatory",
   "description": "A clearer view of your money.",
+  "id": "/dashboard",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#040405",
   "theme_color": "#040405",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.jpg",
+      "sizes": "790x1665",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Dashboard — Money In, Money Out, Spending Chart & Category Breakdown"
+    },
+    {
+      "src": "/screenshots/ledger.jpg",
+      "sizes": "790x1665",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Ledger — Transaction history with search and category filters"
+    }
   ],
   "shortcuts": [
     {
